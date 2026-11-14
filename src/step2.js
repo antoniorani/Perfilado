@@ -2,7 +2,7 @@ import { createProfiles, getSummary, photoUrl } from "./core.js";
 import { chooseProbePhotos, readGallery, nearestCandidates, classifyProbe, summariseProbes } from "./full-gallery.js";
 import { extractDescriptor, ensureModels } from "./face-engine.js";
 import { setupAnswers } from "./answers.js";
-import { PIPELINE_ID } from "./face-pipeline.js";
+import { GALLERY_VERSION } from "./gallery-format.js";
 
 const $ = (selector) => document.querySelector(selector);
 const formatter = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 1 });
@@ -150,7 +150,7 @@ async function validateGalleryParity() {
     const discrepancy = Math.hypot(...vector.map((value, index) =>
       value - reference.descriptor[index]));
     if (discrepancy > 0.12) {
-      throw new Error(`La galería (${PIPELINE_ID}) y el navegador no producen el mismo vector para una fotografía de control (distancia ${formatDistance(discrepancy)}). Recalcula la galería con la versión actual.`);
+      throw new Error(`La galería (${GALLERY_VERSION}) y el navegador no producen el mismo vector para una fotografía de control (distancia ${formatDistance(discrepancy)}). Recalcula la galería con la versión actual.`);
     }
     elements.modelDescription.textContent =
       `Control superado: distancia de consistencia ${formatDistance(discrepancy)} para la misma fotografía.`;
