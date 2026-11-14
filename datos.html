@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Paso 1 del laboratorio Perfilado: exploración de identidades reales de LFW y atributos sintéticos.">
+  <meta name="theme-color" content="#f5f6f2">
+  <title>Paso 1 · Exploración de datos | Perfilado</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body class="page-data">
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <header class="site-header site-header-light"><div class="container header-inner">
+    <a class="brand" href="./index.html" aria-label="Perfilado, volver al inicio"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span><span>PERFILADO<span class="brand-dot">.</span></span></a>
+    <div class="header-side"><span class="header-kicker">LABORATORIO DOCENTE</span><span class="header-separator"></span><span>PASO 01 DE 04</span></div>
+  </div></header>
+
+  <main id="contenido">
+    <div class="container">
+      <nav class="step-nav" aria-label="Progreso de la práctica">
+        <a class="step-nav-item" href="./index.html"><span>00</span> Introducción</a>
+        <span class="step-nav-item step-nav-current" aria-current="step"><span>01</span> Exploración</span>
+        <span class="step-nav-item step-nav-locked" aria-disabled="true"><span>02</span> Biometría <small>Próximamente</small></span>
+        <span class="step-nav-item step-nav-locked" aria-disabled="true"><span>03</span> NLP</span>
+        <span class="step-nav-item step-nav-locked" aria-disabled="true"><span>04</span> Evaluación</span>
+      </nav>
+
+      <section class="data-intro">
+        <div>
+          <p class="section-label">EXPEDIENTE 01 / EL PUNTO DE PARTIDA</p>
+          <h1>Antes del algoritmo,<br><em>los datos.</em></h1>
+          <p class="data-intro-lede">Recibes un archivo de perfiles. Cada registro se corresponde con una identidad de LFW y dispone de una imagen de referencia. El resto de la información contextual se ha inventado para este ejercicio.</p>
+          <div class="inline-pills"><span>15 MINUTOS</span><span>5 PREGUNTAS</span><span>DATOS REALES + SINTÉTICOS</span></div>
+        </div>
+        <aside class="mission-note">
+          <div class="mission-note-top"><span>NOTA DE MISIÓN</span><span>01 — 04</span></div>
+          <p>«Tenemos un conjunto de perfiles. Antes de usarlo, necesitaremos saber qué información contiene, de dónde procede y qué preguntas puede responder realmente».</p>
+          <small>Encargo ficticio · Uso exclusivo para formación</small>
+        </aside>
+      </section>
+
+      <section class="stat-grid" aria-label="Indicadores del dataset">
+        <div class="stat-card"><span class="stat-title">Identidades originales</span><strong id="stat-identities">—</strong><span class="stat-description">Labeled Faces in the Wild</span></div>
+        <div class="stat-card"><span class="stat-title">Fotografías de referencia</span><strong id="stat-references">—</strong><span class="stat-description">Una por identidad</span></div>
+        <div class="stat-card"><span class="stat-title">Campos ficticios</span><strong>03</strong><span class="stat-description">Edad, zona e idioma</span></div>
+        <div class="stat-card stat-card-accent"><span class="stat-title">Origen de las imágenes</span><strong>LFW</strong><span class="stat-description">Base académica publicada en 2007</span></div>
+      </section>
+
+      <section class="section-space-tight">
+        <div class="section-title-row"><div><p class="section-label">01.A / PROCEDENCIA</p><h2>¿Qué es real y qué hemos inventado?</h2></div></div>
+        <div class="provenance-grid">
+          <div class="provenance-card"><div class="provenance-icon provenance-icon-real">◉</div><div><h3>Datos originales</h3><p>Identidad de LFW, número de fotografías por persona y nombre del archivo de referencia. Los nombres originales se mantienen fuera de la tabla visible y se usan únicamente para encontrar la imagen correspondiente.</p><span class="source-tag source-tag-real">ORIGEN: LFW</span></div></div>
+          <div class="provenance-card"><div class="provenance-icon provenance-icon-synthetic">✳</div><div><h3>Datos sintéticos</h3><p>Identificador de perfil, edad, zona e idioma generados para la actividad. No describen a la persona fotografiada, ni pueden interpretarse como información real sobre ella.</p><span class="source-tag source-tag-synthetic">GENERADOS PARA LA PRÁCTICA</span></div></div>
+        </div>
+      </section>
+
+      <section class="explorer-section" aria-labelledby="explorer-title">
+        <div class="section-title-row"><div><p class="section-label">01.B / EXPLORACIÓN</p><h2 id="explorer-title">Examinar los registros.</h2></div><p class="section-aside">Los perfiles son simulados. La identidad y la fotografía de referencia proceden del catálogo LFW.</p></div>
+        <div class="explorer-toolbar">
+          <label class="field field-search"><span>Buscar perfil</span><input id="search" type="search" placeholder="Ej. PF-00042" autocomplete="off"></label>
+          <label class="field"><span>Zona ficticia</span><select id="zone"><option value="all">Todas las zonas</option></select></label>
+          <label class="field"><span>Ordenar por</span><select id="sort"><option value="id">Identificador</option><option value="age">Edad ficticia</option><option value="zone">Zona ficticia</option></select></label>
+          <button type="button" class="button button-secondary toolbar-download" id="download-csv">Descargar CSV <span aria-hidden="true">↓</span></button>
+        </div>
+        <div class="local-data-notice">
+          <div class="local-icon" aria-hidden="true">↥</div><div><strong>Fotografías: carga local opcional</strong><p>Por sus condiciones de reutilización, las fotografías originales no se redistribuyen con esta web. Si dispones de LFW, selecciona su carpeta o archivos JPG para verlos aquí. Se procesan únicamente en tu navegador.</p><span id="file-status" role="status">Sin fotografías locales cargadas.</span></div>
+          <label class="button button-secondary upload-control">Elegir fotos <input id="photo-files" type="file" accept=".jpg,.jpeg,image/jpeg" multiple webkitdirectory directory aria-label="Elegir carpeta de fotografías LFW"></label>
+        </div>
+        <div id="data-status" class="data-status" role="status">Cargando catálogo de identidades…</div>
+        <div class="table-wrap">
+          <table class="data-table"><caption class="sr-only">Perfiles con datos sintéticos y referencias de imágenes de LFW</caption><thead><tr><th scope="col">Imagen de referencia</th><th scope="col">Perfil</th><th scope="col">Edad <span class="th-small">/ ficticia</span></th><th scope="col">Zona <span class="th-small">/ ficticia</span></th><th scope="col">Idioma <span class="th-small">/ ficticio</span></th><th scope="col">Tipo de dato</th></tr></thead><tbody id="profiles-body"></tbody></table>
+        </div>
+        <div class="table-footer"><p id="table-summary" aria-live="polite">Cargando…</p><div class="pagination"><button type="button" id="previous" class="button button-secondary button-small">← Anterior</button><span id="page-counter"></span><button type="button" id="next" class="button button-secondary button-small">Siguiente →</button></div></div>
+      </section>
+
+      <section class="section-space-tight">
+        <div class="section-title-row"><div><p class="section-label">01.C / ESTADÍSTICA DESCRIPTIVA</p><h2>Una distribución también cuenta una historia.</h2></div><p class="section-aside">Las gráficas muestran exclusivamente <b>variables inventadas</b>; no describen la población real de LFW.</p></div>
+        <div class="charts-grid">
+          <article class="chart-card"><div class="chart-heading"><h3>Perfiles por zona ficticia</h3><span>SINTÉTICO</span></div><div id="zone-chart" class="bar-chart" aria-label="Distribución de zonas ficticias"></div></article>
+          <article class="chart-card"><div class="chart-heading"><h3>Edades ficticias</h3><span>SINTÉTICO</span></div><div id="age-chart" class="bar-chart" aria-label="Distribución de edades sintéticas"></div></article>
+        </div>
+      </section>
+
+      <section class="question-section" id="preguntas">
+        <div class="question-head"><div><p class="section-label section-label-light">01.D / REFLEXIÓN</p><h2>Cinco preguntas<br><em>antes de continuar.</em></h2><p>Justifica tus decisiones. No hay una única respuesta correcta para las preguntas abiertas.</p></div><span class="question-count">01—05</span></div>
+        <div class="question-list">
+          <div class="question-item"><label for="q1"><span>01</span> ¿Cuántas personas contiene el dataset y cuántas fotografías de referencia tenemos por persona? ¿Es suficiente para desarrollar un sistema de identificación?</label><textarea id="q1" rows="3" placeholder="Tu reflexión…"></textarea></div>
+          <div class="question-item"><label for="q2"><span>02</span> ¿Qué columnas son originales y cuáles sintéticas? ¿Cómo influye esta diferencia en la fiabilidad de los datos?</label><textarea id="q2" rows="3" placeholder="Tu reflexión…"></textarea></div>
+          <div class="question-item"><label for="q3"><span>03</span> ¿Es representativa esta muestra de una situación de conflicto? ¿Qué consecuencias tendría que no lo fuera?</label><textarea id="q3" rows="3" placeholder="Tu reflexión…"></textarea></div>
+          <div class="question-item"><label for="q4"><span>04</span> ¿Qué atributos resultarían útiles para identificar a una persona? ¿Utilizarías todos los campos sintéticos?</label><textarea id="q4" rows="3" placeholder="Tu reflexión…"></textarea></div>
+          <div class="question-item"><label for="q5"><span>05 <b>PROTECCIÓN DE DATOS</b></span> Las fotografías proceden de Internet y de una base pública. ¿Pueden reutilizarse para cualquier finalidad? ¿Qué principios y garantías deberíamos comprobar?</label><textarea id="q5" rows="3" placeholder="Tu reflexión…"></textarea></div>
+        </div>
+        <div class="question-actions"><p id="save-state" role="status">Las respuestas se guardan solo en este navegador.</p><button class="button button-primary" type="button" id="export-answers">Exportar mis respuestas <span aria-hidden="true">↓</span></button></div>
+      </section>
+
+      <div class="step-bottom"><a class="text-link" href="./index.html">← Volver a la introducción</a><span>El paso 2 (identificación biométrica) se incorporará después.</span></div>
+    </div>
+  </main>
+  <footer class="site-footer site-footer-light"><div class="container footer-inner"><span>PERFILADO · Proyecto docente independiente</span><span>Catálogo: <a href="https://vis-www.cs.umass.edu/lfw/" rel="noopener noreferrer" target="_blank">LFW ↗</a> · Datos sintéticos identificados</span></div></footer>
+  <script type="module" src="./src/step1.js"></script>
+</body>
+</html>
