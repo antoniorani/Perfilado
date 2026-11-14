@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { createProfiles, getSummary, filterProfiles, referenceImageUrl } from "../src/core.js";
+import { createProfiles, getSummary, filterProfiles, referenceImageUrl, ZONES } from "../src/core.js";
 
 const source = JSON.parse(readFileSync(new URL("../data/lfw-identities.json", import.meta.url), "utf8"));
 const profiles = createProfiles(source.identities);
@@ -44,7 +44,7 @@ test("LFW photograph URLs use the correct 1,000-image shard boundaries", () => {
 
 test("invented zones are deliberately imbalanced, but every zone exists", () => {
   const summary = getSummary(profiles);
-  const counts = Object.values(summary.byZone);
+  const counts = ZONES.map((zone) => summary.byZone[zone]);
   assert.equal(counts.length, 5);
   assert.ok(counts.every((v) => v > 0));
   assert.ok(counts[0] > counts[1] && counts[1] > counts[2]);
