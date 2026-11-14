@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Paso 2 de Perfilado: reconocimiento facial real con LFW, embeddings, identificación 1:N y análisis de errores.">
+  <meta name="description" content="Paso 2 de Perfilado: detección y alineación facial, embeddings reales, identificación 1:N y análisis de errores.">
   <meta name="theme-color" content="#f5f6f2">
   <title>Paso 2 · Identificación biométrica | Perfilado</title>
   <link rel="stylesheet" href="./assets/styles.css">
@@ -35,7 +35,7 @@
         <p class="section-label">02.A / EL PROCEDIMIENTO</p>
         <h2 id="method-title">Identificación 1:N con un modelo real</h2>
         <div class="process-grid">
-          <div class="process-card"><span class="process-number">01</span><h3>Referencias preparadas</h3><p>Partimos de <strong>5.749 vectores de 128 números</strong>, calculados previamente sobre una fotografía de cada persona mediante face-api.js.</p></div>
+          <div class="process-card"><span class="process-number">01</span><h3>Referencias preparadas</h3><p>Partimos de <strong>5.749 vectores de 128 números</strong>, calculados previamente sobre una fotografía de cada persona, después de detectar y alinear el rostro.</p></div>
           <div class="process-card"><span class="process-number">02</span><h3>100 fotos desconocidas</h3><p>Procesaremos 100 segundas fotografías de identidades distintas. El alumno no necesita conocerlas antes de la búsqueda.</p></div>
           <div class="process-card"><span class="process-number">03</span><h3>Buscar y evaluar</h3><p>Calculamos la <strong>distancia euclidiana</strong> a las 5.749 referencias, obtenemos el candidato más cercano y aplicamos el umbral elegido.</p></div>
         </div>
@@ -55,12 +55,12 @@
         <div class="lab-feedback" id="gallery-feedback" role="status" aria-live="polite">
           <strong id="gallery-status">Comprobando los embeddings de referencia…</strong>
           <p id="gallery-description">La galería precalculada se obtiene de un archivo binario; no hay que volver a procesar sus 5.749 imágenes.</p>
-          <label class="gallery-import" for="gallery-file">Los embeddings representan rostros reales y deben protegerse. Para trabajar sin publicarlos, carga el archivo privado en este navegador:
-            <input id="gallery-file" type="file" accept=".f32,.bin,application/octet-stream">
+          <label class="gallery-import" for="gallery-file">Los vectores son biométricos y deben protegerse. Carga aquí la galería v2, calculada con detección y alineación facial:
+            <input id="gallery-file" type="file" accept=".pfg,application/octet-stream">
           </label>
         </div>
         <div class="lab-controls full-gallery-controls">
-          <p>El navegador generará los 100 embeddings nuevos con <strong>el mismo modelo</strong> utilizado en la preparación de las referencias. Después comparará cada vector con toda la galería.</p>
+          <p>El navegador <strong>detectará y alineará</strong> los rostros y calculará los 100 embeddings con <strong>el mismo procedimiento</strong> utilizado para generar las referencias. Después comparará cada vector con toda la galería.</p>
           <button id="run-model" class="button button-primary" type="button" disabled>Identificar las 100 fotos <span aria-hidden="true">↗</span></button>
         </div>
         <div class="lab-feedback" id="lab-feedback" role="status" aria-live="polite">
