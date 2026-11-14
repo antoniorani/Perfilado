@@ -1,0 +1,37 @@
+name: Verify external assets (diagnostic)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/paso2-biometria-real
+
+permissions:
+  contents: read
+
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check model files and browser CORS headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          urls=(
+            "https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"
+            "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights/face_recognition_model-weights_manifest.json"
+            "https://huggingface.co/datasets/marcelohaps/lfw/resolve/main/train/images/000/Aaron_Peirsol_0002.jpg"
+          )
+          for url in "${urls[@]}"; do
+            echo "::group::$url"
+            status=$(curl --silent --show-error --location --max-time 40 \
+              -H "Origin: https://antoniorani.github.io" \
+              --dump-header "$RUNNER_TEMP/asset-headers" --output /dev/null \
+              --write-out '%{http_code}' "$url")
+            echo "HTTP status: $status"
+            grep -i '^access-control-allow-origin:' "$RUNNER_TEMP/asset-headers" || true
+            if [[ "$status" != "200" ]]; then
+              echo "::warning::External asset is not reachable (HTTP $status): $url"
+            fi
+            echo "::endgroup::"
+          done
