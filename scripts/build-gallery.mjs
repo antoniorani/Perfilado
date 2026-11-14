@@ -19,6 +19,11 @@ const MODEL_URL = "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.2
 const MODEL_NAME = "face_recognition_model-weights_manifest.json";
 const OUT_DIR = process.env.OUT_DIR || "./build";
 const LIMIT = Number(process.env.LIMIT || "0");
+const SHARD_COUNT = Number(process.env.SHARD_COUNT || "1");
+const SHARD_INDEX = Number(process.env.SHARD_INDEX || "0");
+if (!Number.isInteger(SHARD_COUNT) || SHARD_COUNT < 1 || !Number.isInteger(SHARD_INDEX) || SHARD_INDEX < 0 || SHARD_INDEX >= SHARD_COUNT) {
+  throw new RangeError("Invalid batch partition");
+}
 const retryDelay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function getBytes(url, attempts = 5) {
@@ -53,14 +58,16 @@ async function main() {
   const start = Date.now();
   const index = JSON.parse(await fs.readFile(new URL("../data/lfw-identities.json", import.meta.url), "utf8"));
   const all = createProfiles(index.identities);
-  const subjects = LIMIT > 0 ? all.slice(0, LIMIT) : all;
-  console.log(`Starting ${subjects.length} real descriptors of ${all.length} LFW subjects`);
+  const chosen = all.map((person, index) => ({ person, index }))
+    .filter(({ index }) => index % SHARD_COUNT === SHARD_INDEX);
+  const subjects = LIMIT > 0 ? chosen.slice(0, LIMIT) : chosen;
+  console.log(`Starting batch ${SHARD_INDEX + 1}/${SHARD_COUNT}: ${subjects.length} real descriptors of ${all.length} LFW subjects`);
   const weights = await downloadWeights();
   const embeddings = new Float32Array(subjects.length * 128);
   const failed = [];
   let completed = 0;
   for (let i = 0; i < subjects.length; i += 1) {
-    const person = subjects[i];
+    const { person, index: globalIndex } = subjects[i];
     try {
       const bytes = await getBytes(photoUrl(person, 1));
       const image = await canvas.loadImage(bytes);
@@ -71,7 +78,7 @@ async function main() {
       embeddings.set(descriptor, i * 128);
       completed += 1;
     } catch (error) {
-      failed.push({ index: i, id: person.id, reason: String(error.message || error) });
+      failed.push({ index: globalIndex, id: person.id, reason: String(error.message || error) });
       // NaN signals a missing descriptor; never interpret it as a 0-vector match.
       embeddings.fill(NaN, i * 128, (i + 1) * 128);
     }
@@ -87,6 +94,10 @@ async function main() {
   await fs.writeFile(path.join(OUT_DIR, "lfw-gallery.f32"), bytes);
   const report = {
     source: "Labeled Faces in the Wild, first photo per identity",
+    shardIndex: SHARD_INDEX,
+    shardCount: SHARD_COUNT,
+    originalIdentityCount: all.length,
+    globalIndices: subjects.map(({ index }) => index),
     model: "face-api.js 0.22.2 face_recognition_model",
     operation: "faceapi.computeFaceDescriptor(image)",
     dimensions: 128,
@@ -95,6 +106,7 @@ async function main() {
     valid: completed,
     failed,
     bytes: bytes.length,
+    floatFormat: "Float32 little-endian",
     modelWeights: weights,
     elapsedSeconds: Math.round((Date.now() - start) / 1000),
   };
