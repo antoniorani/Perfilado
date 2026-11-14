@@ -26,3 +26,6 @@ jobs:
           node --check src/face-engine.js
           node --check src/step1.js
           node --check src/step2.js
+          node --check src/full-gallery.js
+          node --check scripts/build-gallery.mjs
+          node --check scripts/combine-gallery.mjs
