@@ -1,0 +1,26 @@
+name: Validate RUW models on the original 6,000 posts
+
+on:
+  push:
+    branches: [feat/paso3-ruw-textos]
+    paths:
+      - src/ruw-data.js
+      - src/text-classifier.js
+      - scripts/verify-ruw.mjs
+      - .github/workflows/verify-ruw.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run genuine RUW split and model validation
+        run: node scripts/verify-ruw.mjs
