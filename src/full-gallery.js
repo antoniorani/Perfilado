@@ -1,3 +1,5 @@
+import { decodeGallery } from "./gallery-format.js";
+
 /** Pure logic for the 5,749-person gallery / 100-photo LFW experiment. */
 export const DESCRIPTOR_SIZE = 128;
 export const DEFAULT_PROBES = 100;
@@ -14,11 +16,7 @@ export function chooseProbePhotos(profiles, requested = DEFAULT_PROBES) {
 
 /** The Float32 file is ordered identically to data/lfw-identities.json. */
 export function readGallery(buffer, profiles) {
-  const bytes = profiles.length * DESCRIPTOR_SIZE * Float32Array.BYTES_PER_ELEMENT;
-  if (!(buffer instanceof ArrayBuffer) || buffer.byteLength !== bytes) {
-    throw new Error(`Galería biométrica incompatible: se esperaban ${bytes} bytes`);
-  }
-  const values = new Float32Array(buffer);
+  const values = decodeGallery(buffer, profiles);
   const missing = [];
   const gallery = profiles.map((person, index) => {
     const descriptor = values.subarray(index * DESCRIPTOR_SIZE, (index + 1) * DESCRIPTOR_SIZE);
