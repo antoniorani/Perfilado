@@ -32,16 +32,15 @@ src/step1.js               UI de exploración
 biometria.html             Paso 2: identificación biométrica
 assets/biometrics.css      Estilos específicos del laboratorio
 src/answers.js             Respuestas compartidas entre pasos
-src/biometric-core.js      Lógica histórica del prototipo pequeño
 src/face-engine.js         Modelos preentrenados reales
 src/step2.js               Experimento real de 100 fotografías
 src/full-gallery.js        Selección reproducible, lectura f32 y búsqueda top-5
 scripts/build-gallery.mjs   Generación reproducible de embeddings LFW
 scripts/combine-gallery.mjs Ensamblado y validación de 16 lotes
 .github/workflows/precompute-gallery.yml  Proceso de precálculo
-tests/biometrics.test.js   Pruebas de identificación
 data/lfw-identities.json   Índice real LFW
-tests/core.test.js         Pruebas automatizadas
+tests/core.test.js         Pruebas del catálogo
+ tests/full-gallery.test.js  Pruebas de búsqueda y umbrales
 ```
 
 Para trabajar localmente:
