@@ -7,7 +7,8 @@ Laboratorio docente de inteligencia artificial, identificación facial y protecc
 - **Introducción:** encargo del equipo técnico y recorrido de la práctica, presentado al final.
 - **Paso 1:** una imagen por identidad, nombre, código de perfil y atributos sintéticos. Exploración con búsqueda, filtros, gráficos y preguntas de reflexión.
 - **Paso 2:** 5.749 referencias calculadas con detección y alineación facial, y 100 fotos nuevas procesadas en el navegador para buscar top-1/top-5 y ajustar el umbral.
-- **Pasos 3–4:** análisis NLP y evaluación conjunta. Pendientes de desarrollar.
+- **Paso 3:** clasificación real de publicaciones RUW con dos objetivos (Rusia/Ucrania), TF-IDF, Naive Bayes o centroides, validación y matriz de confusión.
+- **Paso 4:** evaluación conjunta pendiente de desarrollar.
 
 ## Datos
 
@@ -46,6 +47,15 @@ scripts/evaluate-gallery.mjs Evaluación de 100 fotos con 5.749 referencias
 data/lfw-identities.json   Índice real LFW
 tests/core.test.js         Pruebas del catálogo
 tests/full-gallery.test.js   Pruebas de búsqueda y umbrales
+textos.html                Paso 3: clasificación de publicaciones
+assets/textos.css          Diseño responsive del laboratorio NLP
+src/ruw-data.js            Lectura de RUW, limpieza y divisiones
+src/text-classifier.js     Vectores TF-IDF y modelos supervisados
+src/step3.js               Interfaz y evaluación de dos objetivos
+tests/ruw-data.test.js     Integridad del corpus y anonimización parcial
+tests/text-classifier.test.js Pruebas de modelos y confusión
+scripts/verify-ruw.mjs     Auditoría real de las 6.000 publicaciones
+scripts/browser-smoke.mjs  Prueba integrada con Chromium
 ```
 
 Para trabajar localmente:
@@ -137,6 +147,49 @@ La galería `lfw-gallery-v3.pfg` usa una cabecera de versión nueva, conserva la
 **No se debe interpretar esto como 5.749 identificaciones fiables**: los cinco vectores `direct-unverified` se han generado mediante la red de reconocimiento, pero sin que ningún detector haya confirmado y alineado el rostro. El archivo contiene vectores reales, y el informe documenta expresamente esa diferencia de calidad. Añadir referencias más débiles **no garantiza una mejora en la tasa de aciertos**.
 
 **Atención a la privacidad:** los embeddings generados a partir de caras de personas identificadas constituyen plantillas biométricas que no deben difundirse indiscriminadamente. La web admite la importación local del fichero, sin necesidad de subirlo a GitHub Pages. Los artefactos de GitHub Actions también están sujetos a permisos de acceso y políticas de retención y deben gestionarse adecuadamente.
+
+## Paso 3: clasificación real de publicaciones RUW
+
+**Objetivo:** estudiar qué postura **expresa una publicación** acerca de dos objetivos independientes, Rusia y Ucrania, sin atribuir opiniones privadas a personas identificadas. Las etiquetas originales del corpus [RUW (multi-target/RUW)](https://github.com/multi-target/RUW) son `FAVOR`, `AGAINST` y `NONE`. **`NONE` es ausencia de postura identificable en el mensaje**, no una prueba de neutralidad de la persona.
+
+### Datos de origen y protección de la privacidad
+
+La app carga automáticamente los tres CSV directamente del [repositorio RUW original](https://github.com/multi-target/RUW/tree/ecb2a4579197c5be03092a1b8fa21ead359809ce) a partir del commit fijo `ecb2a4579197c5be03092a1b8fa21ead359809ce`.
+
+| Partición de RUW | Registros originales | Registros utilizados tras descartar duplicados |
+| --- | ---: | ---: |
+| Entrenamiento | 4.200 | 4.095 |
+| Validación (`Dev`) | 600 | 599 |
+| Prueba (`Test`) | 1.200 | 1.187 |
+| **Total** | **6.000** | **5.881** |
+
+Las coincidencias textuales se excluyen con prioridad **prueba → validación → entrenamiento** para que un ejemplo aparezca como máximo en una partición. Este filtro solo utiliza el texto, no las etiquetas de prueba, y reduce el riesgo de contaminación de la evaluación. Las cifras originales permanecen visibles para que no se oculten los descartes.
+
+**No almacenamos ni versionamos una copia de los tuits ni sus autores en este repositorio**. Los textos se descargan desde la fuente y se muestran temporalmente en el navegador, retirando menciones de usuario, correos y URL antes de mostrarlos o modelarlos. Son publicaciones de terceros, algunas con lenguaje ofensivo o información no verificada, y **no podemos garantizar anonimización completa**. No se vinculan las publicaciones a las personas reales fotografiadas en LFW. El acceso a RUW depende de internet y del servidor de GitHub, y la reutilización del texto debe respetar los derechos y condiciones correspondientes de los autores y de la plataforma.
+
+### Modelos reales y experimento
+
+La aplicación **no usa resultados inventados ni una red neuronal ficticia**:
+
+1. Construye un **vector TF-IDF disperso** de palabras (o palabras y pares) con el conjunto de entrenamiento. Es una representación léxica y **no** un embedding semántico neuronal tipo BERT.
+2. Entrena en el navegador dos clasificadores alternativos: **Naive Bayes multinomial** sobre TF-IDF o **clasificador de centroides por similitud coseno**.
+3. Ajusta objetivo (Rusia/Ucrania), representación, tamaño de vocabulario y suavizado (Naive Bayes).
+4. Muestra exactitud, **F1 macro**, matriz de confusión, métricas por clase, términos del modelo y errores del conjunto de **validación**.
+5. Tras elegir configuración, desbloquea una evaluación separada del **conjunto de prueba reservado**, con su matriz de confusión. Se advierte que utilizar resultados de prueba para volver a ajustar parámetros introduce sesgo.
+6. Permite analizar una frase escrita por el alumno, exclusivamente en memoria local.
+
+En la auditoría con el corpus original, vocabulario de 2.500 términos y unigramas, se obtuvieron las siguientes métricas de validación **reales**, no extrapolables a opiniones de personas:
+
+| Objetivo | Clasificador | Exactitud | F1 macro |
+| --- | --- | ---: | ---: |
+| Rusia | Naive Bayes | 50,8 % | 37,3 % |
+| Rusia | Centroides por coseno | 50,3 % | 48,8 % |
+| Ucrania | Naive Bayes | 53,6 % | 47,2 % |
+| Ucrania | Centroides por coseno | 52,3 % | 51,5 % |
+
+Estos modelos son deliberadamente manejables para un taller en el navegador. No replican los algoritmos avanzados ni las cifras del artículo RUW; ofrecen una **línea de base reproducible**. La exactitud puede parecer superior aun cuando algunas clases tengan una sensibilidad baja: por eso incluimos F1 macro y matriz de confusión.
+
+Las pruebas automatizadas ejecutan `npm test`; para auditar la fuente RUW con conexión a internet, ejecuta `node scripts/verify-ruw.mjs`. La integración real del navegador se valida mediante Chromium en `scripts/browser-smoke.mjs`. Los datos no se envían a una API propia de Perfilado.
 
 ## GitHub Pages
 
