@@ -15,7 +15,7 @@ export function tokenize(text, ngrams = 1) {
   if (![1, 2].includes(ngrams)) throw new RangeError("N-gramas inválidos");
   const words = String(text).normalize("NFKC").toLocaleLowerCase("en")
     .match(/[\p{L}\p{N}]+(?:['’][\p{L}]+)?/gu)?.filter((word)=>word.length>=2) || [];
-  return ngrams === 1 ? words : [...words, ...words.slice(1).map((w,i)=>`${w}·${words[i+1]}`)];
+  return ngrams === 1 ? words : [...words, ...words.slice(0,-1).map((w,i)=>`${w}·${words[i+1]}`)];
 }
 
 export function buildVectorizer(rows, { ngrams = 1, maxFeatures = 2500 } = {}) {
