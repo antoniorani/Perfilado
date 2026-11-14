@@ -291,6 +291,8 @@ function evaluateFinalTest() {
   $("#test-macro").textContent=percent(result.macroF1);
   $("#test-correct").textContent=number.format(result.correct);
   $("#test-total").textContent=number.format(result.total);
+  classConfusion($("#test-confusion"),result);
+  classMetrics($("#test-classes"),result);
   controls.testResults.hidden=false;
   controls.testButton.disabled=true;
   $("#test-warning").textContent=
