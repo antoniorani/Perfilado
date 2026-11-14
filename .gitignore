@@ -1,0 +1,5 @@
+node_modules/
+build/
+.DS_Store
+# Biometric templates must not enter public Git history by accident.
+data/*.f32

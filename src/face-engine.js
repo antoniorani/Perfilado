@@ -1,4 +1,4 @@
-/** Real face recognition in the browser. No simulated descriptors or network uploads. */
+/** Real browser face descriptors from LFW crops, identical to the offline generator. */
 const MODEL_ROOT = "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights";
 let modelPromise;
 
@@ -10,11 +10,7 @@ export function ensureModels() {
       if (!api?.nets?.faceRecognitionNet) {
         throw new Error("No se ha podido cargar la biblioteca face-api.js desde el CDN.");
       }
-      await Promise.all([
-        api.nets.tinyFaceDetector.loadFromUri(MODEL_ROOT),
-        api.nets.faceLandmark68Net.loadFromUri(MODEL_ROOT),
-        api.nets.faceRecognitionNet.loadFromUri(MODEL_ROOT),
-      ]);
+      await api.nets.faceRecognitionNet.loadFromUri(MODEL_ROOT);
       return api;
     })().catch((error) => {
       modelPromise = undefined; // permit retry after transient network errors
@@ -40,18 +36,16 @@ function loadImage(url) {
   });
 }
 
-/** A real 128-dimensional embedding produced by the published face-api.js ResNet model. */
+/** A real 128-dimensional descriptor of the pre-cropped LFW photo. */
 export async function extractDescriptor(url) {
   const api = await ensureModels();
   const image = await loadImage(url);
   try {
-    const result = await api.detectSingleFace(
-      image, new api.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 }),
-    ).withFaceLandmarks().withFaceDescriptor();
-    if (!result?.descriptor || result.descriptor.length !== 128) {
-      throw new Error("El detector no ha encontrado un rostro válido en esta fotografía.");
+    const result = await api.computeFaceDescriptor(image);
+    if (!result || result.length !== 128 || !Array.from(result).every(Number.isFinite)) {
+      throw new Error("El modelo no ha podido calcular un embedding válido.");
     }
-    return Array.from(result.descriptor);
+    return Array.from(result);
   } finally {
     image.src = ""; // release HTML image memory
   }

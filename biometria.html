@@ -26,60 +26,74 @@
       </nav>
       <section class="data-intro data-intro-simple">
         <p class="section-label">PASO 02 / IDENTIFICACIÓN BIOMÉTRICA</p>
-        <h1>¿De quién es<br><em>esta fotografía?</em></h1>
-        <p class="data-intro-lede">Tenemos una fotografía de referencia por persona. Ahora recibimos imágenes adicionales y debemos comprobar si pertenecen a alguien de la base de datos o a una identidad desconocida.</p>
-        <p class="data-intro-lede">Vamos a utilizar <strong>modelos reales de reconocimiento facial</strong> para obtener embeddings, comparar distancias y descubrir cuándo una decisión aparentemente razonable se convierte en un error.</p>
+        <h1>100 fotografías.<br><em>5.749 candidatos.</em></h1>
+        <p class="data-intro-lede">Disponemos de una fotografía de referencia para cada persona del dataset inicial. Sus <strong>5.749 embeddings faciales</strong> se han calculado previamente con un modelo de reconocimiento facial real.</p>
+        <p class="data-intro-lede">Ahora recibimos <strong>100 fotografías nuevas</strong> de personas que ya figuran en la base. Vamos a calcular sus embeddings y buscar la identidad más cercana entre las 5.749 referencias. Después comprobaremos cuándo se equivoca el sistema y cómo afectan los umbrales a las decisiones.</p>
       </section>
 
-      <section class="dataset-explainer" aria-labelledby="step2-data">
-        <p class="section-label">02.A / QUÉ VAMOS A HACER</p>
-        <h2 id="step2-data">Una imagen. Un vector. Una comparación.</h2>
+      <section class="dataset-explainer" aria-labelledby="method-title">
+        <p class="section-label">02.A / EL PROCEDIMIENTO</p>
+        <h2 id="method-title">Identificación 1:N con un modelo real</h2>
         <div class="process-grid">
-          <div class="process-card"><span class="process-number">01</span><h3>Extraer</h3><p>El modelo analiza cada rostro y obtiene un <strong>embedding de 128 números</strong>. No es una etiqueta de identidad.</p></div>
-          <div class="process-card"><span class="process-number">02</span><h3>Comparar</h3><p>Calculamos la <strong>distancia euclidiana</strong> entre una imagen nueva y las fotografías de referencia.</p></div>
-          <div class="process-card"><span class="process-number">03</span><h3>Decidir</h3><p>Si la distancia al candidato más próximo supera el umbral, el sistema responde <strong>«sin identificar»</strong>.</p></div>
+          <div class="process-card"><span class="process-number">01</span><h3>Referencias preparadas</h3><p>Partimos de <strong>5.749 vectores de 128 números</strong>, calculados previamente sobre una fotografía de cada persona mediante face-api.js.</p></div>
+          <div class="process-card"><span class="process-number">02</span><h3>100 fotos desconocidas</h3><p>Procesaremos 100 segundas fotografías de identidades distintas. El alumno no necesita conocerlas antes de la búsqueda.</p></div>
+          <div class="process-card"><span class="process-number">03</span><h3>Buscar y evaluar</h3><p>Calculamos la <strong>distancia euclidiana</strong> a las 5.749 referencias, obtenemos el candidato más cercano y aplicamos el umbral elegido.</p></div>
         </div>
-        <p class="dataset-source">Modelo: <a href="https://github.com/justadudewhohacks/face-api.js" target="_blank" rel="noopener noreferrer">face-api.js, con pesos preentrenados ↗</a> · Fotografías: <a href="https://huggingface.co/datasets/marcelohaps/lfw" rel="noopener noreferrer" target="_blank">LFW ↗</a>. Todo el cálculo se realiza en tu navegador.</p>
+        <p class="dataset-source">Modelo: <a href="https://github.com/justadudewhohacks/face-api.js" rel="noopener noreferrer" target="_blank">face-api.js 0.22.2 ↗</a> · Fotografías: <a href="https://huggingface.co/datasets/marcelohaps/lfw" rel="noopener noreferrer" target="_blank">LFW ↗</a>. Las distancias no son probabilidades.</p>
       </section>
 
       <section class="lab-section" aria-labelledby="lab-title">
-        <div class="section-title-row"><div><p class="section-label">02.B / EXPERIMENTO</p><h2 id="lab-title">Construye tu identificador.</h2></div><p class="section-aside">La muestra procede de LFW y contiene identidades presentes y ausentes de la galería. Las etiquetas reales se usan exclusivamente para evaluar los errores.</p></div>
-        <div class="lab-controls">
-          <label class="field"><span>Identidades en la galería</span><select id="cohort-size"><option value="4">4 · prueba rápida</option><option value="8" selected>8 · recomendado</option><option value="12">12 · ampliado</option></select></label>
-          <div class="lab-config"><span class="lab-config-label">Fotos iniciales</span><strong id="gallery-count">8 referencias</strong><small>Una foto por identidad</small></div>
-          <div class="lab-config"><span class="lab-config-label">Fotos de prueba</span><strong id="probe-count">12 fotografías</strong><small>Incluye personas desconocidas</small></div>
-          <button id="run-model" class="button button-primary" type="button">Calcular embeddings <span aria-hidden="true">↗</span></button>
+        <div class="section-title-row">
+          <div><p class="section-label">02.B / IDENTIFICACIÓN</p><h2 id="lab-title">Pon a prueba la galería completa.</h2></div>
+          <p class="section-aside">Las 100 imágenes se eligen de forma reproducible entre identidades que tienen varias fotos en LFW. Se reserva la primera para la galería y se utiliza la segunda como prueba.</p>
         </div>
-
+        <div class="full-gallery-facts">
+          <div><span>Galería de referencia</span><strong>5.749</strong><small>una imagen por identidad</small></div>
+          <div><span>Imágenes nuevas</span><strong>100</strong><small>identidades distintas y conocidas</small></div>
+          <div><span>Representación</span><strong>128</strong><small>componentes por embedding</small></div>
+        </div>
+        <div class="lab-feedback" id="gallery-feedback" role="status" aria-live="polite">
+          <strong id="gallery-status">Comprobando los embeddings de referencia…</strong>
+          <p id="gallery-description">La galería precalculada se obtiene de un archivo binario; no hay que volver a procesar sus 5.749 imágenes.</p>
+          <label class="gallery-import" for="gallery-file">Los embeddings representan rostros reales y deben protegerse. Para trabajar sin publicarlos, carga el archivo privado en este navegador:
+            <input id="gallery-file" type="file" accept=".f32,.bin,application/octet-stream">
+          </label>
+        </div>
+        <div class="lab-controls full-gallery-controls">
+          <p>El navegador generará los 100 embeddings nuevos con <strong>el mismo modelo</strong> utilizado en la preparación de las referencias. Después comparará cada vector con toda la galería.</p>
+          <button id="run-model" class="button button-primary" type="button" disabled>Identificar las 100 fotos <span aria-hidden="true">↗</span></button>
+        </div>
         <div class="lab-feedback" id="lab-feedback" role="status" aria-live="polite">
-          <strong id="model-status">Experimento preparado</strong>
-          <p id="model-description">Pulsa «Calcular embeddings». Se descargarán los modelos preentrenados y se procesarán las fotos seleccionadas.</p>
-          <progress id="model-progress" max="100" value="0" hidden aria-label="Progreso del procesamiento de imágenes"></progress>
+          <strong id="model-status">Esperando a la galería de referencia</strong>
+          <p id="model-description">Cuando se hayan cargado los embeddings podrás comenzar el experimento.</p>
+          <progress id="model-progress" max="100" value="0" hidden aria-label="Progreso de las 100 fotografías de prueba"></progress>
         </div>
-
-        <div class="preview-heading"><h3>Ejemplo de las imágenes del experimento</h3><p>Las fotografías se obtienen de LFW. Las de referencia y las de prueba no son la misma captura.</p></div>
+        <div class="preview-heading"><h3>Ejemplos de las nuevas fotografías</h3><p>Estas imágenes no se utilizaron para generar los vectores iniciales de la galería.</p></div>
         <div id="preview-gallery" class="preview-grid" aria-live="polite"></div>
-
-        <aside class="model-notice"><strong>Una muestra docente, no una validación operativa.</strong> No procesamos las 13.233 fotografías del dataset en directo: el experimento utiliza una muestra pequeña y reproducible para permitir su ejecución en clase. La calidad del detector puede impedir obtener algunos embeddings. Los resultados no son extrapolables a una situación real.</aside>
+        <aside class="model-notice"><strong>Alcance de la evaluación.</strong> Las 100 personas están incluidas en la galería; por tanto, evaluamos la <strong>exactitud top-1</strong> y los rechazos provocados por el umbral, pero <strong>no</strong> la respuesta frente a personas verdaderamente desconocidas. Las 100 fotografías son una muestra docente, no una validación de un sistema operativo.</aside>
       </section>
 
       <section class="lab-section results-section" id="results-section" hidden aria-labelledby="results-title">
-        <div class="section-title-row"><div><p class="section-label">02.C / RESULTADOS REALES</p><h2 id="results-title">¿Cuándo aceptar una coincidencia?</h2></div><p class="section-aside">El umbral se aplica a la distancia euclidiana. <b>Una distancia menor indica mayor similitud</b>; no es una probabilidad de identidad.</p></div>
-        <div class="threshold-box">
-          <div><label for="distance-threshold">Distancia máxima para aceptar una identidad</label><p>Muévelo y observa cómo cambian los resultados, sin volver a calcular los embeddings.</p></div>
-          <div class="threshold-control"><output id="threshold-value" for="distance-threshold">0,60</output><input type="range" id="distance-threshold" min="0.30" max="0.95" step="0.025" value="0.60"><div class="threshold-labels"><span>Más estricto</span><span>Más permisivo</span></div></div>
+        <div class="section-title-row">
+          <div><p class="section-label">02.C / EVALUACIÓN</p><h2 id="results-title">¿Quién es el candidato más cercano?</h2></div>
+          <p class="section-aside">La coincidencia top-1 se calcula sin umbral. El umbral decide después si la aceptarías o la rechazarías.</p>
         </div>
-        <div class="lab-metrics" aria-label="Resumen de la identificación">
-          <div class="lab-metric"><span>Identificaciones correctas</span><strong id="metric-correct">—</strong></div>
-          <div class="lab-metric lab-metric-alert"><span>Identificaciones equivocadas</span><strong id="metric-wrong">—</strong></div>
-          <div class="lab-metric"><span>Conocidos sin identificar</span><strong id="metric-missed">—</strong></div>
-          <div class="lab-metric"><span>Desconocidos bien rechazados</span><strong id="metric-rejected">—</strong></div>
-          <div class="lab-metric lab-metric-alert"><span>Alertas falsas sobre desconocidos</span><strong id="metric-false-alert">—</strong></div>
+        <div class="lab-metrics full-gallery-metrics">
+          <div class="lab-metric"><span>Top-1 correcto, sin umbral</span><strong id="metric-top1">—</strong><small id="top1-rate">—</small></div>
+          <div class="lab-metric"><span>Identificaciones aceptadas correctas</span><strong id="metric-correct">—</strong></div>
+          <div class="lab-metric lab-metric-alert"><span>Identificaciones aceptadas erróneas</span><strong id="metric-wrong">—</strong></div>
+          <div class="lab-metric"><span>Fotografías rechazadas por umbral</span><strong id="metric-rejected">—</strong></div>
+          <div class="lab-metric lab-metric-alert"><span>Fotografías no procesadas</span><strong id="metric-failed">—</strong></div>
+        </div>
+        <div class="threshold-box">
+          <div><label for="distance-threshold">Distancia máxima para aceptar una coincidencia</label><p>Al mover el umbral cambian las aceptaciones y rechazos, pero <strong>no</strong> quién fue el candidato más cercano.</p></div>
+          <div class="threshold-control"><output id="threshold-value" for="distance-threshold">0,600</output><input type="range" id="distance-threshold" min="0.25" max="1.40" step="0.025" value="0.60"><div class="threshold-labels"><span>Más estricto</span><span>Más permisivo</span></div></div>
         </div>
         <div class="metrics-explanation"><strong id="precision-text">—</strong><span id="metrics-scope">—</span></div>
-        <div class="preview-heading"><h3>Revisa los casos individuales</h3><p>Cada resultado muestra una foto de prueba, la coincidencia más cercana y la identidad real conocida por LFW.</p></div>
-        <div class="case-toolbar"><label class="field"><span>Mostrar casos</span><select id="case-filter"><option value="all">Todos los casos</option><option value="errors">Solo errores</option><option value="correct">Solo resultados correctos</option></select></label><span id="case-summary"></span></div>
+        <div class="preview-heading"><h3>Revisa las coincidencias</h3><p>Examina el candidato top-1 y despliega los cinco resultados más próximos cuando lo necesites.</p></div>
+        <div class="case-toolbar"><label class="field"><span>Ver resultados</span><select id="case-filter"><option value="all">Todos</option><option value="errors">Solo errores</option><option value="correct">Solo aciertos</option><option value="rejected">Solo rechazados</option></select></label><span id="case-summary">—</span></div>
         <div id="cases" class="case-list"></div>
+        <div class="table-footer"><p id="page-summary"></p><div class="pagination"><button id="cases-previous" type="button" class="button button-secondary button-small">← Anterior</button><span id="cases-counter">—</span><button id="cases-next" type="button" class="button button-secondary button-small">Siguiente →</button></div></div>
       </section>
 
       <section class="question-section" id="preguntas">
@@ -87,9 +101,9 @@
         <div class="question-list">
           <div class="question-item"><label for="q6"><span>06</span> ¿Qué es un embedding facial? ¿Dos fotos de la misma persona generan el mismo vector? ¿Podemos reconstruir o identificar información personal a partir de él?</label><textarea id="q6" rows="3" placeholder="Tu reflexión…"></textarea></div>
           <div class="question-item"><label for="q7"><span>07</span> ¿Qué significa una distancia pequeña entre dos embeddings? ¿Podemos interpretarla como un porcentaje de certeza sobre la identidad?</label><textarea id="q7" rows="3" placeholder="Tu reflexión…"></textarea></div>
-          <div class="question-item"><label for="q8"><span>08</span> ¿Qué umbral has elegido inicialmente y por qué? ¿Es adecuado utilizar el mismo para cualquier contexto o finalidad?</label><textarea id="q8" rows="3" placeholder="Tu reflexión…"></textarea></div>
-          <div class="question-item"><label for="q9"><span>09</span> ¿Cuántas imágenes se han identificado correctamente, cuántas erróneamente y cuántas han quedado sin identificar? ¿Qué sucede con las fotografías que el modelo no logra procesar?</label><textarea id="q9" rows="3" placeholder="Tu reflexión…"></textarea></div>
-          <div class="question-item"><label for="q10"><span>10</span> Ajusta el umbral. ¿Qué cambia respecto a los errores de identificación y los rechazos? ¿Qué error tendría consecuencias más graves en el escenario planteado?</label><textarea id="q10" rows="3" placeholder="Tu reflexión…"></textarea></div>
+          <div class="question-item"><label for="q8"><span>08</span> ¿Qué umbral has elegido inicialmente y por qué? ¿Es lo mismo elegir el candidato más cercano que afirmar que la identificación es fiable?</label><textarea id="q8" rows="3" placeholder="Tu reflexión…"></textarea></div>
+          <div class="question-item"><label for="q9"><span>09</span> De las 100 fotografías, ¿cuántas tienen su identidad real como primera coincidencia (top-1)? ¿Cuántas identificaciones se aceptan o rechazan al aplicar el umbral? ¿Cuántas no llegan a procesarse?</label><textarea id="q9" rows="3" placeholder="Tu reflexión…"></textarea></div>
+          <div class="question-item"><label for="q10"><span>10</span> Ajusta el umbral. ¿Cambia el número de aciertos top-1 o solo qué identificaciones se aceptan y rechazan? ¿Qué error tendría consecuencias más graves en el escenario planteado?</label><textarea id="q10" rows="3" placeholder="Tu reflexión…"></textarea></div>
           <div class="question-item"><label for="q11"><span>11</span> Examina los casos erróneos. ¿Detectas problemas de iluminación, postura o calidad? ¿Por qué no puedes extrapolar estos resultados a todas las personas del dataset?</label><textarea id="q11" rows="3" placeholder="Tu reflexión…"></textarea></div>
           <div class="question-item"><label for="q12"><span>12 <b>PROTECCIÓN DE DATOS</b></span> ¿Son los embeddings datos personales? ¿Qué condiciones jurídicas y medidas de seguridad exigirías antes de tratar datos biométricos para identificar personas? ¿Qué garantías necesitarías ante un error?</label><textarea id="q12" rows="3" placeholder="Tu reflexión…"></textarea></div>
         </div>
