@@ -1,6 +1,9 @@
 /** Pure helpers for the student-facing, static dataset explorer. */
 export const ZONES = ["Sector Alfa", "Sector Bravo", "Sector Charlie", "Sector Delta", "Sector Eco"];
 export const LANGUAGES = ["Español", "Inglés", "Francés", "Ucraniano", "Ruso"];
+// Deliberately uneven, purely invented distribution (approx. 52/26/13/7/2%).
+const ZONE_CUMULATIVE = [5200, 7800, 9100, 9800, 10000];
+const PHOTO_SOURCE = "https://huggingface.co/datasets/marcelohaps/lfw/resolve/main/train/images";
 
 function hash(input) {
   let value = 2166136261;
@@ -14,21 +17,33 @@ function hash(input) {
 /** LFW identity and image count are factual; every profile field is invented. */
 export function createProfiles(identities) {
   if (!Array.isArray(identities)) throw new TypeError("Expected LFW identities array");
+  let photoOffset = 0;
   return identities.map(([identity, imageCount], index) => {
     if (typeof identity !== "string" || !Number.isInteger(imageCount) || imageCount < 1) {
       throw new TypeError("Invalid LFW identity entry");
     }
     const seed = hash(identity);
+    const zoneDraw = (seed >>> 4) % 10000;
+    const zoneIndex = ZONE_CUMULATIVE.findIndex((cutoff) => zoneDraw < cutoff);
+    const referenceShard = String(Math.floor(photoOffset / 1000)).padStart(3, "0");
+    photoOffset += imageCount;
     return {
       id: `PF-${String(index + 1).padStart(5, "0")}`,
       lfwIdentity: identity,
+      name: identity.replaceAll("_", " "),
       referenceFile: `${identity}_0001.jpg`,
+      referenceShard,
       imageCount,
       age: 21 + (seed % 46),
-      zone: ZONES[(seed >>> 4) % ZONES.length],
+      zone: ZONES[zoneIndex],
       language: LANGUAGES[(seed >>> 10) % LANGUAGES.length],
     };
   });
+}
+
+/** Lazily display the original first image from a public LFW mirror; not rehosted. */
+export function referenceImageUrl(profile) {
+  return `${PHOTO_SOURCE}/${profile.referenceShard}/${encodeURIComponent(profile.referenceFile)}`;
 }
 
 export function getSummary(profiles) {
@@ -58,18 +73,11 @@ export function filterProfiles(profiles, { query = "", zone = "all", order = "id
   const needle = query.trim().toLocaleLowerCase("es");
   const result = profiles.filter((profile) => {
     return (zone === "all" || profile.zone === zone)
-      && (!needle || profile.id.toLocaleLowerCase("es").includes(needle));
+      && (!needle || `${profile.id} ${profile.name}`.toLocaleLowerCase("es").includes(needle));
   });
   return result.sort((a, b) => {
     if (order === "age") return a.age - b.age || a.id.localeCompare(b.id);
     if (order === "zone") return a.zone.localeCompare(b.zone, "es") || a.id.localeCompare(b.id);
     return a.id.localeCompare(b.id);
   });
-}
-
-export function exportProfilesCsv(profiles) {
-  const columns = ["perfil_id", "imagen_referencia", "edad_sintetica", "ubicacion_sintetica", "idioma_sintetico"];
-  const quote = (value) => `"${String(value).replaceAll('"', '""')}"`;
-  const rows = profiles.map((p) => [p.id, p.referenceFile, p.age, p.zone, p.language].map(quote).join(","));
-  return "\uFEFF" + [columns.join(","), ...rows].join("\r\n");
 }
