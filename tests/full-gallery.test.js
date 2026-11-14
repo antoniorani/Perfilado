@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createProfiles } from "../src/core.js";
+import { encodeGallery, decodeGallery } from "../src/gallery-format.js";
+import { computeAlignedDescriptor, PIPELINE_ID } from "../src/face-pipeline.js";
 import {
   DESCRIPTOR_SIZE, chooseProbePhotos, readGallery,
   nearestCandidates, classifyProbe, summariseProbes,
@@ -23,18 +25,19 @@ test("float32 gallery corresponds to all profiles in the documented order", () =
   const matrix = new Float32Array(profiles.length * DESCRIPTOR_SIZE);
   matrix[0] = 2;
   matrix[DESCRIPTOR_SIZE] = 3;
-  const result = readGallery(matrix.buffer, profiles);
+  const result = readGallery(encodeGallery(matrix, profiles), profiles);
   assert.equal(result.gallery.length, 5749);
   assert.equal(result.gallery[0].person.id, "PF-00001");
   assert.equal(result.gallery[1].descriptor[0], 3);
   assert.equal(result.missing.length, 0);
-  assert.throws(() => readGallery(new ArrayBuffer(64), profiles), /incompatible/);
+  assert.throws(() => readGallery(new ArrayBuffer(64), profiles), /antigua|incompatible/i);
+  assert.equal(PIPELINE_ID, "faceapi0222-ssd68-aligned-v2");
 });
 
 test("corrupt descriptors are excluded instead of interpreted as zero vectors", () => {
   const matrix = new Float32Array(profiles.length * DESCRIPTOR_SIZE);
   matrix[256] = NaN;
-  const result = readGallery(matrix.buffer, profiles);
+  const result = readGallery(encodeGallery(matrix, profiles), profiles);
   assert.equal(result.gallery.length, 5748);
   assert.deepEqual(result.missing, [profiles[2].id]);
 });
@@ -67,4 +70,41 @@ test("top-1 accuracy does not change with threshold, while accepts and rejects d
   assert.deepEqual([at60.correct, at60.wrong, at60.rejected], [1, 1, 1]);
   assert.deepEqual([at100.correct, at100.wrong, at100.rejected], [2, 1, 0]);
   assert.equal(at60.attempted, 3);
+});
+
+test("v2 gallery rejects legacy files, changed model and mismatched catalog", () => {
+  const input = new Float32Array(profiles.length * DESCRIPTOR_SIZE);
+  const valid = encodeGallery(input, profiles);
+  assert.equal(decodeGallery(valid, profiles).length, input.length);
+  assert.throws(() => readGallery(input.buffer, profiles), /antigua|incompatible/i);
+  const differentModel = valid.slice(0);
+  new Uint8Array(differentModel)[16] = "!".charCodeAt(0);
+  assert.throws(() => readGallery(differentModel, profiles), /otro modelo|preprocesamiento/i);
+  assert.throws(() => readGallery(valid, profiles.slice(0, -1)), /identidades/i);
+});
+
+test("aligned descriptor uses SSD detection, face landmarks and recognition sequence", async () => {
+  let called = [];
+  class Options { constructor(config) { called.push(["options", config.minConfidence]); } }
+  const api = {
+    SsdMobilenetv1Options: Options,
+    detectSingleFace(image, options) {
+      called.push(["detector", image.id, options instanceof Options]);
+      return {
+        withFaceLandmarks() {
+          called.push(["landmarks"]);
+          return {
+            async withFaceDescriptor() {
+              called.push(["descriptor"]);
+              return { descriptor: new Float32Array(128).fill(0.1) };
+            },
+          };
+        },
+      };
+    },
+  };
+  const descriptor = await computeAlignedDescriptor(api, {id:"sample"});
+  assert.equal(descriptor.length,128);
+  assert.deepEqual(called.map((x) => x[0]),["options","detector","landmarks","descriptor"]);
+  assert.deepEqual(called[1],["detector","sample",true]);
 });
