@@ -25,7 +25,8 @@ export function createProfiles(identities) {
     const seed = hash(identity);
     const zoneDraw = (seed >>> 4) % 10000;
     const zoneIndex = ZONE_CUMULATIVE.findIndex((cutoff) => zoneDraw < cutoff);
-    const referenceShard = String(Math.floor(photoOffset / 1000)).padStart(3, "0");
+    const imageOffset = photoOffset;
+    const referenceShard = String(Math.floor(imageOffset / 1000)).padStart(3, "0");
     photoOffset += imageCount;
     return {
       id: `PF-${String(index + 1).padStart(5, "0")}`,
@@ -33,6 +34,7 @@ export function createProfiles(identities) {
       name: identity.replaceAll("_", " "),
       referenceFile: `${identity}_0001.jpg`,
       referenceShard,
+      imageOffset,
       imageCount,
       age: 21 + (seed % 46),
       zone: ZONES[zoneIndex],
@@ -42,8 +44,17 @@ export function createProfiles(identities) {
 }
 
 /** Lazily display the original first image from a public LFW mirror; not rehosted. */
+export function photoUrl(profile, number = 1) {
+  if (!Number.isInteger(number) || number < 1 || number > profile.imageCount) {
+    throw new RangeError("Número de imagen fuera del catálogo de esta identidad");
+  }
+  const shard = String(Math.floor((profile.imageOffset + number - 1) / 1000)).padStart(3, "0");
+  const filename = `${profile.lfwIdentity}_${String(number).padStart(4, "0")}.jpg`;
+  return `${PHOTO_SOURCE}/${shard}/${encodeURIComponent(filename)}`;
+}
+
 export function referenceImageUrl(profile) {
-  return `${PHOTO_SOURCE}/${profile.referenceShard}/${encodeURIComponent(profile.referenceFile)}`;
+  return photoUrl(profile, 1);
 }
 
 export function getSummary(profiles) {
