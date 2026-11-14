@@ -8,7 +8,7 @@ import { loadFaceModels, extractRemoteFaceDescriptor } from "./node-face-model.m
 const dataDir = process.env.OUT_DIR || "./build/final";
 const roster = JSON.parse(await fs.readFile(new URL("../data/lfw-identities.json", import.meta.url), "utf8"));
 const profiles = createProfiles(roster.identities);
-const raw = await fs.readFile(`${dataDir}/lfw-gallery-v2.pfg`);
+const raw = await fs.readFile(`${dataDir}/lfw-gallery-v3.pfg`);
 const {gallery,missing} = readGallery(raw.buffer.slice(raw.byteOffset,raw.byteOffset+raw.byteLength),profiles);
 const samples = chooseProbePhotos(profiles,100);
 console.log(`EVALUATION_START ${PIPELINE_ID}; gallery=${gallery.length}, missing=${missing.length}, probes=${samples.length}`);
