@@ -86,7 +86,9 @@ export function parseRUWSplit(source, split) {
     throw new Error(`Encabezados inesperados en RUW (${split})`);
   }
   const expectedSplit = { train: "Train", val: "Dev", test: "Test" }[split];
-  return rows.slice(1).filter((r) => r.length === 6 && r.some(Boolean)).map((fields, index) => {
+  const body = rows.slice(1).filter((r) => r.some((value)=>value !== ""));
+  return body.map((fields, index) => {
+    if (fields.length !== 6) throw new Error(`Fila CSV incorrecta en RUW ${split}, fila ${index + 2}`);
     const [rawText, rTarget, russia, uTarget, ukraine, originalSplit] = fields;
     if (rTarget !== "Russia" || uTarget !== "Ukraine"
         || originalSplit !== expectedSplit || !LABELS.includes(russia)
