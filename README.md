@@ -1,65 +1,58 @@
 # PERFILADO
 
-Laboratorio docente de inteligencia artificial, identificación biométrica y protección de datos.
+Laboratorio docente de inteligencia artificial, identificación facial y protección de datos. **Autor: Antonio Ramos Nieto.**
 
-## Alcance de esta primera entrega
+## Primera fase disponible
 
-- **Introducción**: presentación narrativa del encargo y cuatro etapas del taller.
-- **Paso 1**: catálogo exploratorio con 5.749 perfiles, búsqueda, ordenación, filtros, gráficos, exportación CSV y cinco preguntas de reflexión.
-- **Fotografías**: carga local opcional en el navegador. No se redistribuyen en GitHub.
-- **Próximamente**: identificación con modelos faciales reales, NLP con modelos textuales reales y evaluación conjunta.
+- **Introducción:** encargo del equipo técnico y recorrido de la práctica, presentado al final.
+- **Paso 1:** una imagen por identidad, nombre, código de perfil y atributos sintéticos. Exploración con búsqueda, filtros, gráficos y preguntas de reflexión.
+- **Pasos 2–4:** identificación facial, análisis NLP y evaluación conjunta. Pendientes de desarrollar con modelos reales.
 
-### Datos y procedencia
+## Datos
 
-El [dataset LFW](https://vis-www.cs.umass.edu/lfw/) (Huang et al., 2007) contiene 13.233 fotografías correspondientes a 5.749 identidades. El archivo `data/lfw-identities.json` incluye **únicamente los nombres originales de las identidades y su número de fotografías**, tomados de [lfw-names.txt](https://github.com/happynear/FaceDatasets/blob/master/CASIA/lfw-names.txt) y contrastados con los totales oficiales.
+La web utiliza el [dataset Labeled Faces in the Wild (LFW)](https://vis-www.cs.umass.edu/lfw/), publicado por investigadores de la Universidad de Massachusetts Amherst (2007), con 5.749 identidades y 13.233 imágenes. El fichero [`data/lfw-identities.json`](data/lfw-identities.json) contiene **únicamente los nombres originales y el número de imágenes** por identidad, contrastados con [`lfw-names.txt`](https://github.com/happynear/FaceDatasets/blob/master/CASIA/lfw-names.txt).
 
-Los perfiles de clase `PF-00001` a `PF-05749` tienen una sola imagen de referencia (`_0001.jpg`). **Edad, zona e idioma son generados mediante un algoritmo determinista y son enteramente ficticios**; no describen a las personas reales fotografiadas. No se asigna ninguna opinión política a identidades de LFW.
+La fotografía inicial (`Nombre_Apellido_0001.jpg`) de cada perfil **se visualiza automáticamente** desde la copia pública [marcelohaps/lfw de Hugging Face](https://huggingface.co/datasets/marcelohaps/lfw). Solo se solicitan las diez fotografías que aparecen en la página actual; no se descargan previamente las 5.749 ni se almacenan fotografías en este repositorio. Si la conexión o el proveedor externo fallan, la interfaz muestra una imagen no disponible. La visualización necesita acceso a internet y realiza solicitudes al proveedor externo.
 
-LFW incluye fotografías de personas reales obtenidas en Internet; que un dataset sea accesible públicamente no equivale a una autorización general para redistribuir las imágenes o destinarlas a usos diferentes. Por ello **este repositorio no contiene fotografías de LFW**. El docente puede seleccionar desde su ordenador una carpeta o un grupo de archivos JPG descargados lícitamente. El navegador indexa el nombre de archivo (`Nombre_Apellido_0001.jpg`) y muestra las imágenes que encuentre: no se sube nada a ningún servidor.
+**Nombre e imagen proceden de LFW.** El código del perfil, la edad, la zona y el idioma son **ficticios**, generados con una función determinista. La distribución de zonas es deliberadamente desigual, pero **no es una distribución real ni representativa de LFW**. Nunca se atribuyen opiniones inventadas a las personas reales fotografiadas.
 
-Las respuestas de los estudiantes se conservan solamente en su navegador mediante `localStorage` cuando está disponible; pueden exportarse a un archivo TXT. El CSV exportado contiene el perfil y sus variables ficticias, incluida la referencia al archivo de imagen, no la imagen.
+Este proyecto no habilita la reutilización libre de las fotografías para otras finalidades; cualquier uso externo requiere revisar derechos, licencias y protección de datos. La documentación de Hugging Face señala que se deben comprobar las condiciones de origen antes de redistribuir las imágenes.
 
-## Implementación
+## Código y pruebas
 
-HTML, CSS y **módulos ES de JavaScript**, sin framework, dependencias externas ni proceso de compilación. Preparado para funcionar en GitHub Pages, también bajo el subdirectorio `/Perfilado/`.
+Web estática sin dependencias: HTML, CSS y módulos de JavaScript. No necesita backend, instalación ni compilación.
 
 ```text
-index.html                 # Introducción
-datos.html                 # Primer paso
-assets/styles.css          # Diseño responsive
-src/core.js                # Transformaciones puras y comprobables
-src/step1.js               # Comportamiento de la interfaz
-data/lfw-identities.json   # Catálogo original sin fotografías
-tests/core.test.js         # Pruebas de integridad y funciones
+index.html                 Introducción
+datos.html                 Paso 1
+assets/styles.css          Diseño adaptable
+src/core.js                Transformaciones puras
+src/step1.js               UI de exploración
+data/lfw-identities.json   Índice real LFW
+tests/core.test.js         Pruebas automatizadas
 ```
 
-### Ejecutar localmente
+Para trabajar localmente:
 
 ```bash
 python3 -m http.server 8000
 # abrir http://localhost:8000
 ```
 
-No abras los archivos mediante `file://`: la carga del catálogo mediante `fetch()` requiere HTTP. Para ejecutar las pruebas con Node.js (versión actual):
+Para probar la lógica (Node.js >=20):
 
 ```bash
 npm test
 ```
 
-No es necesario ejecutar `npm install`.
+Las respuestas se guardan localmente en el navegador, si el almacenamiento está disponible, y pueden exportarse a TXT. **La interfaz ya no ofrece descarga del conjunto de perfiles**.
 
-### Publicar con GitHub Pages
+## GitHub Pages
 
-Después de fusionar la rama de trabajo con `main`:
+En **Settings → Pages → Build and deployment**, selecciona **Deploy from a branch → main → / (root)**. Una vez habilitado el despliegue:
 
-1. Abre **Settings → Pages** en el repositorio.
-2. En **Build and deployment**, selecciona **Deploy from a branch**.
-3. Elige `main` y `/ (root)`; guarda los cambios.
+https://antoniorani.github.io/Perfilado/
 
-La dirección prevista será `https://antoniorani.github.io/Perfilado/`. La publicación efectiva depende de que GitHub Pages esté habilitado.
+Las rutas relativas funcionan bajo el subdirectorio `/Perfilado/`.
 
-## Próximas fases
-
-El paso 2 incorporará embeddings faciales obtenidos mediante un **modelo preentrenado real**, comparación 1:N y errores de identificación. El paso 3 añadirá clasificación de posturas **expresadas en textos**, sin atribuir opiniones ficticias a personas reales. El paso 4 se realizará con casos e identidades completamente ficticias y revisará los riesgos de combinar ambos sistemas.
-
-**Uso exclusivo para formación.** No es un sistema de identificación operacional y no se deben interpretar las puntuaciones de modelos como pruebas de identidad, ideología o conducta de una persona.
+**Uso exclusivamente docente.** La app no opera un sistema de vigilancia ni ejecuta aún modelos faciales o de procesamiento del lenguaje. La etapa conjunta sobre opiniones políticas deberá construirse con identidades totalmente ficticias.
