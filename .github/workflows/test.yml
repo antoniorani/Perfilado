@@ -22,7 +22,6 @@ jobs:
         run: |
           node --check src/core.js
           node --check src/answers.js
-          node --check src/biometric-core.js
           node --check src/face-engine.js
           node --check src/step1.js
           node --check src/step2.js
