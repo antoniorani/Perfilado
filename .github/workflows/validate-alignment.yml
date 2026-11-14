@@ -1,0 +1,33 @@
+name: Validate aligned facial embeddings
+on:
+  push:
+    branches: [fix/aligned-face-embeddings-v2]
+    paths:
+      - scripts/node-face-model.mjs
+      - scripts/validate-alignment.mjs
+      - src/face-pipeline.js
+      - .github/workflows/validate-alignment.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install recognition runtime
+        run: npm install --no-save --no-package-lock face-api.js@0.22.2 canvas@3.2.0
+      - name: Analyze 24 genuine reference/test pairs
+        run: node scripts/validate-alignment.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aligned-pair-diagnostic
+          path: build/validation/
+          retention-days: 15
