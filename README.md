@@ -85,7 +85,17 @@ Además, la web vuelve a calcular un embedding de control a partir de una imagen
 
 Se ha ejecutado una prueba real sobre **24 identidades con dos fotografías de LFW cada una**: **24/24 coincidencias top-1** y ningún fallo de procesamiento dentro de esa muestra de 24 referencias. Este resultado comprueba que el procedimiento nuevo funciona mejor en esa muestra, pero **no equivale a una estimación sobre las 5.749 referencias**.
 
-La automatización independiente `Precompute aligned LFW gallery v2 and validate` calcula las primeras fotografías de 5.749 personas por lotes y, después de ensamblar y verificar los índices, evalúa otras **100 fotografías contra la galería completa**. El informe resultante `lfw-evaluation-100.json` permitirá distinguir los resultados del estudio de 24 personas de los del ejercicio completo.
+La automatización independiente [Precompute aligned LFW gallery v2 and validate](https://github.com/antoniorani/Perfilado/actions/runs/43620492398) **ha completado correctamente todos sus trabajos** y contrastado las 100 fotografías con la galería completa.
+
+**Resultados reales verificados el 14 de noviembre de 2026:**
+
+- **5.749 fotografías de referencia intentadas**, **5.447 embeddings válidos** y **302 fotografías no detectadas o no procesadas**, excluidas explícitamente.
+- **100 fotografías nuevas intentadas**, **99 procesadas**, **1 fallo de detección**.
+- **78/99 top-1 correctas (78,8 %)**; top-5 correcto en **85/99 (85,9 %)**.
+- Con umbral **0,55**: **78 identificaciones aceptadas correctas**, **20 equivocadas aceptadas**, **1 rechazada** y **1 fotografía no procesada**.
+- SHA-256 comprobado de `lfw-gallery-v2.pfg`: `2477d5c7231ee7940f5c501edc8e21e62116ac7d830a202343b2694e21940bab`.
+
+La galería y el informe están en el artefacto **lfw-aligned-v2-all-5749** de la ejecución citada. El informe `lfw-evaluation-100.json` documenta todas las métricas por umbral. El archivo v1 anterior no se puede utilizar con la nueva versión.
 
 ### Archivos y uso docente
 
