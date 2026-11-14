@@ -1,0 +1,69 @@
+name: Recover delayed LFW gallery partition
+
+on:
+  push:
+    branches: [feat/gallery-5749-test100]
+    paths:
+      - .github/workflows/recover-gallery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  calculate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [3, 19, 35, 51]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-save --no-package-lock face-api.js@0.22.2 canvas@3.2.0
+      - name: Recompute a quarter of the delayed batch
+        env:
+          SHARD_COUNT: "64"
+          SHARD_INDEX: ${{ matrix.shard }}
+        run: node scripts/build-gallery.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lfw-gallery-recovery-${{ matrix.shard }}
+          path: build/
+          retention-days: 7
+
+  assemble:
+    needs: calculate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Reuse completed original 15 batches
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 43616229913
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: lfw-gallery-part-*
+          path: build/parts
+      - name: Discard superseded slow batch if present
+        run: rm -rf build/parts/lfw-gallery-part-3
+      - name: Add four recovered sub-batches
+        uses: actions/download-artifact@v4
+        with:
+          pattern: lfw-gallery-recovery-*
+          path: build/parts
+      - name: Validate all 5,749 source positions
+        run: node scripts/combine-gallery.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lfw-gallery-all-5749
+          path: build/final
+          retention-days: 30
+          compression-level: 1
