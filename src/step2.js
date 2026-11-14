@@ -2,6 +2,7 @@ import { createProfiles, getSummary, photoUrl } from "./core.js";
 import { chooseProbePhotos, readGallery, nearestCandidates, classifyProbe, summariseProbes } from "./full-gallery.js";
 import { extractDescriptor, ensureModels } from "./face-engine.js";
 import { setupAnswers } from "./answers.js";
+import { PIPELINE_ID } from "./face-pipeline.js";
 
 const $ = (selector) => document.querySelector(selector);
 const formatter = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 1 });
@@ -102,14 +103,14 @@ function activateGallery(buffer, origin) {
 
 async function loadGallery() {
   try {
-    const response = await fetch("./data/lfw-gallery.f32", { cache: "default" });
+    const response = await fetch("./data/lfw-gallery-v2.pfg", { cache: "default" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     activateGallery(await response.arrayBuffer(), "galería precomputada");
   } catch (error) {
     elements.launch.disabled = true;
     galleryFeedback(
       "La galería precalculada no está disponible automáticamente",
-      `Puedes seleccionar el archivo «lfw-gallery.f32» proporcionado por el docente. Causa técnica: ${error.message}.`,
+      `Puedes seleccionar «lfw-gallery-v2.pfg», con rostros detectados y alineados. El archivo anterior (.f32) ya no es válido. Detalle: ${error.message}.`,
       true,
     );
   }
@@ -130,6 +131,34 @@ function formatDistance(distance) {
   return distance.toFixed(3).replace(".", ",");
 }
 
+/** Catches incompatible model/image pipelines before running any student evaluation.
+ * Same original photo, same weights and alignment -> extremely close embeddings.
+ */
+async function validateGalleryParity() {
+  elements.modelStatus.textContent = "Verificando que la galería y el navegador usan el mismo modelo…";
+  const controls = gallery.filter((item) => item.person.imageCount >= 10).slice(0, 4);
+  let errors = 0;
+  for (const reference of controls) {
+    let vector;
+    try {
+      vector = await extractDescriptor(photoUrl(reference.person, 1));
+    } catch (error) {
+      errors += 1;
+      console.warn("Control de modelo no procesado:", error);
+      continue;
+    }
+    const discrepancy = Math.hypot(...vector.map((value, index) =>
+      value - reference.descriptor[index]));
+    if (discrepancy > 0.12) {
+      throw new Error(`La galería (${PIPELINE_ID}) y el navegador no producen el mismo vector para una fotografía de control (distancia ${formatDistance(discrepancy)}). Recalcula la galería con la versión actual.`);
+    }
+    elements.modelDescription.textContent =
+      `Control superado: distancia de consistencia ${formatDistance(discrepancy)} para la misma fotografía.`;
+    return;
+  }
+  throw new Error(`No fue posible verificar el modelo con ninguna fotografía de control (${errors} fallos). Revisa conexión y detección facial.`);
+}
+
 async function runExperiment() {
   if (running || !gallery.length) return;
   running = true;
@@ -138,13 +167,14 @@ async function runExperiment() {
   elements.results.hidden = true;
   elements.progress.hidden = false;
   elements.progress.value = 0;
-  elements.modelStatus.textContent = "Cargando el modelo real de reconocimiento facial…";
+  elements.modelStatus.textContent = "Cargando el modelo de detección, alineación y reconocimiento facial…";
   elements.modelDescription.textContent = "El navegador descargará los pesos preentrenados una sola vez.";
 
   predictions = [];
   failures = [];
   try {
     await ensureModels();
+    await validateGalleryParity();
     for (let i = 0; i < probes.length; i += 1) {
       const photo = probes[i];
       try {
