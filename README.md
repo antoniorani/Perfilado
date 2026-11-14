@@ -6,7 +6,7 @@ Laboratorio docente de inteligencia artificial, identificación facial y protecc
 
 - **Introducción:** encargo del equipo técnico y recorrido de la práctica, presentado al final.
 - **Paso 1:** una imagen por identidad, nombre, código de perfil y atributos sintéticos. Exploración con búsqueda, filtros, gráficos y preguntas de reflexión.
-- **Paso 2:** identificación facial real en navegador: embeddings de 128 dimensiones, comparación 1:N, umbral y evaluación con personas registradas y desconocidas.
+- **Paso 2:** 5.749 embeddings iniciales precalculados y 100 nuevas imágenes de LFW procesadas en el navegador, con búsqueda 1:N, top-1 y ajuste de umbral.
 - **Pasos 3–4:** análisis NLP y evaluación conjunta. Pendientes de desarrollar.
 
 ## Datos
@@ -32,9 +32,13 @@ src/step1.js               UI de exploración
 biometria.html             Paso 2: identificación biométrica
 assets/biometrics.css      Estilos específicos del laboratorio
 src/answers.js             Respuestas compartidas entre pasos
-src/biometric-core.js      Muestra LFW y evaluación de distancias
+src/biometric-core.js      Lógica histórica del prototipo pequeño
 src/face-engine.js         Modelos preentrenados reales
-src/step2.js               UI interactiva del experimento
+src/step2.js               Experimento real de 100 fotografías
+src/full-gallery.js        Selección reproducible, lectura f32 y búsqueda top-5
+scripts/build-gallery.mjs   Generación reproducible de embeddings LFW
+scripts/combine-gallery.mjs Ensamblado y validación de 16 lotes
+.github/workflows/precompute-gallery.yml  Proceso de precálculo
 tests/biometrics.test.js   Pruebas de identificación
 data/lfw-identities.json   Índice real LFW
 tests/core.test.js         Pruebas automatizadas
@@ -55,20 +59,38 @@ npm test
 
 Las respuestas se guardan localmente en el navegador, si el almacenamiento está disponible, y pueden exportarse a TXT. **La interfaz ya no ofrece descarga del conjunto de perfiles**.
 
-## Paso 2: reconocimiento facial real
+## Paso 2: 5.749 referencias / 100 fotografías de prueba
 
-La página `biometria.html` carga **face-api.js 0.22.2** desde jsDelivr y, únicamente al comenzar el experimento, descarga tres redes preentrenadas: detector Tiny Face Detector, detector de 68 puntos faciales y red de reconocimiento de 128 componentes. Para comparar caras se calcula la **distancia euclidiana** entre embeddings; el umbral de 0,60 es un valor didáctico ajustable, **no una probabilidad ni una garantía de identidad**.
+### Método y comportamiento
 
-- El paso 1 mantiene los **5.749 perfiles originales**, pero calcular embeddings en directo de 13.233 imágenes no resulta viable para una clase con navegadores corrientes. El paso 2 utiliza un **subconjunto reproducible de 4, 8 o 12 identidades registradas** y elige por cada una una referencia y una segunda foto. Incluye además identidades que no están en la galería para comprobar falsos positivos y rechazos.
-- Todas las distancias visibles se obtienen de **embeddings reales calculados por el navegador**. No se han incluido puntuaciones sintéticas en la interfaz. Si no se detecta un rostro o falla la carga remota, el ejemplo se excluye y se informa de cuántos casos se han perdido.
-- Las fotografías se sirven desde Hugging Face y los pesos del modelo desde jsDelivr. **No se suben imágenes ni embeddings generados por el usuario**, pero las peticiones de descarga se realizan a esos proveedores externos. Es necesaria una conexión estable y que Hugging Face permita cargar las imágenes con CORS para la lectura de píxeles.
-- La precisión que muestra la página es **aciertos entre asignaciones aceptadas** y es distinta de la exactitud global. Los tipos de resultados son: identificación correcta, identidad equivocada, conocido no identificado, desconocido rechazado y falso aviso sobre un desconocido.
-- El modelo fue desarrollado y evaluado públicamente sobre conjuntos de reconocimiento facial, incluido LFW; **esta práctica no es una evaluación independiente**, y una muestra tan reducida no es representativa de un despliegue. No utilices las cifras para justificar decisiones sobre personas.
-- No se asocian perfiles políticos o textos de RUW a las personas reales fotografiadas en LFW.
+La nueva práctica separa el cálculo de **5.749 embeddings de referencia** de la búsqueda en tiempo real de **100 fotografías nuevas**:
 
-### Próximas extensiones
+1. El proceso de preparación usa la **primera foto de cada una de las 5.749 identidades** de LFW y calcula un vector de 128 componentes por persona con `face-api.js@0.22.2`. Se distribuye en 16 lotes de GitHub Actions y se ensambla en un único archivo binario `lfw-gallery.f32` de **2.943.488 bytes** (5.749 × 128 × 4).
+2. El alumnado recibe 100 fotografías de prueba, una segunda foto por cada una de **100 identidades diferentes y conocidas**, seleccionadas de forma determinista entre las 1.680 personas que tienen varias fotos en LFW. No se reutiliza la misma imagen inicial.
+3. Al iniciar el ejercicio se descargan los pesos preentrenados y el navegador calcula **un embedding real por fotografía de prueba** con el mismo método: `faceapi.computeFaceDescriptor(image)` sobre la imagen LFW original, de 250×250 píxeles.
+4. Cada vector de prueba se compara con **todas las referencias válidas** mediante distancia euclidiana y se muestran las cinco coincidencias más próximas. La distancia no es una probabilidad.
+5. **Top-1** significa que el candidato más cercano es la identidad correcta *sin umbral*. Un umbral configurable determina si la coincidencia se **acepta** o **rechaza**. El alumno observa aciertos aceptados, identificaciones erróneas aceptadas y rechazos. Si hay fallos de imagen o del modelo, se cuentan como **no procesadas**, no como predicciones.
 
-Si fuese necesario cubrir los 5.749 perfiles y las 7.484 fotografías adicionales, habría que **precalcular embeddings reproducibles en un entorno de preparación** y publicar solo los artefactos compatibles con los derechos aplicables, separados de los datos biográficos y políticos. No presentar el experimento de navegador como una evaluación completa del dataset.
+**Límite experimental:** Las 100 personas de prueba figuran en la galería. Este experimento **no mide la tasa de identificación errónea de personas desconocidas**. El modelo de reconocimiento facial se ha utilizado previamente para estudiar LFW, de modo que el resultado no es una validación independiente ni permite extrapolaciones a una población real.
+
+### Generación del archivo de referencias
+
+La automatización `Precompute real LFW gallery (evaluation)` puede iniciarse manualmente desde **Actions**. Sus 16 trabajos calculan los embeddings reales con la misma versión de la biblioteca y después comprueban el orden, el formato y la cantidad de vectores. La acción produce un artefacto descargable con:
+
+- `lfw-gallery.f32`: matriz de float32 de 128 dimensiones por identidad, ordenada igual que `data/lfw-identities.json`.
+- `lfw-gallery-report.json`: trazabilidad del modelo, recuentos, fallos, índices y tiempos de cada lote.
+
+No se crean embeddings ficticios cuando una imagen falla: se representa como no válida y se documenta en el informe. La validación de integridad exige 5.749 posiciones y señala si alguna referencia no pudo calcularse.
+
+### Decisión de publicación y privacidad
+
+**Los embeddings faciales no son datos anónimos**: son representaciones biométricas calculadas a partir de fotografías de personas identificables. Por diseño, **el código no obliga a incorporarlos a un repositorio público**. El docente puede descargar el artefacto desde GitHub Actions y cargar el archivo `lfw-gallery.f32` desde la web, sin transmitir ese archivo al servidor.
+
+La página intentará cargar automáticamente `data/lfw-gallery.f32` **si el responsable del proyecto decide incorporarlo tras revisar la licitud y las condiciones de difusión**. Si no existe, la interfaz informa de ello y permite seleccionar el archivo localmente.
+
+La publicación abierta del conjunto completo de plantillas **exige evaluación específica de protección de datos**; su presencia en un repositorio público no debe decidirse por mera conveniencia técnica.
+
+Las peticiones de fotografías de LFW y de pesos del modelo se realizan a proveedores externos; los embeddings de las nuevas fotos se calculan en el navegador y no se envían a un backend. Las respuestas del alumnado permanecen en `localStorage` o en los archivos TXT que exporten.
 
 ## GitHub Pages
 
