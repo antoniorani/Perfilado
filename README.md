@@ -126,7 +126,15 @@ La versión v3 **conserva exactamente los 5.447 embeddings v2** y reintenta úni
 3. SSD aplicado a una imagen ampliada, con alineación de landmarks.
 4. Solo si las anteriores fallan: embedding real de la imagen original sin alineación facial confirmada. **Estos casos están identificados como `direct-unverified` y tienen menor fiabilidad**. No deben presentarse como detecciones verificadas.
 
-La galería `lfw-gallery-v3.pfg` usa una cabecera de versión nueva, conserva las posiciones de las 5.749 personas y documenta en `lfw-gallery-v3-report.json` el método utilizado para recuperar cada imagen, así como cualquier fallo residual. Su uso debe acompañarse de la evaluación posterior de 100 fotografías contra la galería completa; añadir referencias más débiles **no garantiza una mejora en la tasa de aciertos**.
+La galería `lfw-gallery-v3.pfg` usa una cabecera de versión nueva, conserva las posiciones de las 5.749 personas y documenta en `lfw-gallery-v3-report.json` el método utilizado para recuperar cada imagen, así como cualquier fallo residual.
+
+**Recálculo completo verificado: 5.749 vectores finitos / 5.749 identidades.** Los 302 casos se han recuperado con SSD de confianza reducida (**238**), TinyFaceDetector alineado (**59**) y descriptor directo sin alineación confirmada (**5**). Se han conservado bit a bit los **5.447 vectores v2 originales**.
+
+- Artefacto: [lfw-complete-v3-5749, GitHub Actions](https://github.com/antoniorani/Perfilado/actions/runs/43627549177)
+- SHA-256 de `lfw-gallery-v3.pfg`: `9f71e3b87b8ad19baad40c9ba1f38b3ce7d23308997b3f2f9a43c55061e3c27c`
+- Forma: 5.749 × 128 float32 + 64 bytes de cabecera; **2.943.552 bytes**.
+
+**No se debe interpretar esto como 5.749 identificaciones fiables**: los cinco vectores `direct-unverified` se han generado mediante la red de reconocimiento, pero sin que ningún detector haya confirmado y alineado el rostro. El archivo contiene vectores reales, y el informe documenta expresamente esa diferencia de calidad. Añadir referencias más débiles **no garantiza una mejora en la tasa de aciertos**.
 
 **Atención a la privacidad:** los embeddings generados a partir de caras de personas identificadas constituyen plantillas biométricas que no deben difundirse indiscriminadamente. La web admite la importación local del fichero, sin necesidad de subirlo a GitHub Pages. Los artefactos de GitHub Actions también están sujetos a permisos de acceso y políticas de retención y deben gestionarse adecuadamente.
 
