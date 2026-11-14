@@ -1,4 +1,5 @@
 import { createProfiles, filterProfiles, getSummary, referenceImageUrl, ZONES } from "./core.js";
+import { setupAnswers } from "./answers.js";
 
 const PAGE_SIZE = 10;
 const formatter = new Intl.NumberFormat("es-ES");
@@ -9,7 +10,6 @@ const elements = {
   tableSummary: $("#table-summary"), counter: $("#page-counter"),
   next: $("#next"), previous: $("#previous"),
   zoneChart: $("#zone-chart"), ageChart: $("#age-chart"),
-  exportAnswers: $("#export-answers"), saveState: $("#save-state"),
 };
 
 let profiles = [];
@@ -114,42 +114,8 @@ function renderChart(target, counts) {
   target.replaceChildren(fragment);
 }
 
-function downloadAnswers() {
-  const entries = Array.from({ length: 5 }, (_, index) => {
-    const field = document.getElementById(`q${index + 1}`);
-    const question = document.querySelector(`label[for="q${index + 1}"]`).textContent.trim();
-    return `${question}\n\n${field.value.trim() || "(Sin respuesta)"}`;
-  });
-  const content = `PERFILADO — PASO 1: EXPLORACIÓN\n\n${entries.join("\n\n------------------------------------\n\n")}\n`;
-  const url = URL.createObjectURL(new Blob([content], { type: "text/plain;charset=utf-8" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "perfilado-paso1-respuestas.txt";
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-function setUpQuestions() {
-  for (let index = 1; index <= 5; index += 1) {
-    const field = document.getElementById(`q${index}`);
-    const key = `perfilado:step1:q${index}`;
-    try { field.value = localStorage.getItem(key) || ""; } catch { /* Storage may be disabled */ }
-    field.addEventListener("input", () => {
-      try {
-        localStorage.setItem(key, field.value);
-        elements.saveState.textContent = "Respuestas guardadas en este navegador.";
-      } catch {
-        elements.saveState.textContent = "Guardado automático no disponible. Exporta tus respuestas.";
-      }
-    });
-  }
-  elements.exportAnswers.addEventListener("click", downloadAnswers);
-}
-
 async function main() {
-  setUpQuestions();
+  setupAnswers({ first: 1, last: 5, step: 1, title: "PERFILADO — PASO 1: EXPLORACIÓN DE DATOS", filename: "perfilado-paso1-respuestas.txt" });
   for (const zone of ZONES) {
     const option = document.createElement("option");
     option.value = zone;

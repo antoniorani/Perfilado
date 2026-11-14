@@ -16,5 +16,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Validate data model
+      - name: Run unit tests
         run: npm test
+      - name: Check browser module syntax
+        run: |
+          node --check src/core.js
+          node --check src/answers.js
+          node --check src/biometric-core.js
+          node --check src/face-engine.js
+          node --check src/step1.js
+          node --check src/step2.js
