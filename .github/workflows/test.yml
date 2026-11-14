@@ -2,7 +2,7 @@ name: Quality checks
 
 on:
   push:
-    branches: [main, "feat/**"]
+    branches: [main, "feat/**", "fix/**"]
   pull_request:
 
 permissions:
@@ -23,8 +23,13 @@ jobs:
           node --check src/core.js
           node --check src/answers.js
           node --check src/face-engine.js
+          node --check src/face-pipeline.js
+          node --check src/gallery-format.js
           node --check src/step1.js
           node --check src/step2.js
           node --check src/full-gallery.js
           node --check scripts/build-gallery.mjs
           node --check scripts/combine-gallery.mjs
+          node --check scripts/node-face-model.mjs
+          node --check scripts/validate-alignment.mjs
+          node --check scripts/evaluate-gallery.mjs
