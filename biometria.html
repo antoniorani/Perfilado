@@ -27,7 +27,7 @@
       <section class="data-intro data-intro-simple">
         <p class="section-label">PASO 02 / IDENTIFICACIÓN BIOMÉTRICA</p>
         <h1>100 fotografías.<br><em>5.749 candidatos.</em></h1>
-        <p class="data-intro-lede">Disponemos de una fotografía de referencia para cada persona del dataset inicial. Se han preparado referencias biométricas a partir de las <strong>5.749 fotografías iniciales</strong>, después de detectar y alinear los rostros. Las fotografías sin detección válida se excluyen e informan por separado.</p>
+        <p class="data-intro-lede">Disponemos de una fotografía de referencia para cada persona del dataset inicial. Se han preparado referencias biométricas a partir de las <strong>5.749 fotografías iniciales</strong>. La mayoría se procesan con detección y alineación estándar; los casos difíciles se recuperan con otros métodos, indicando cuáles tienen una fiabilidad menor.</p>
         <p class="data-intro-lede">Ahora recibimos <strong>100 fotografías nuevas</strong> de personas que ya figuran en la base. Vamos a calcular sus embeddings y buscar la identidad más cercana entre las 5.749 referencias. Después comprobaremos cuándo se equivoca el sistema y cómo afectan los umbrales a las decisiones.</p>
       </section>
 
@@ -55,7 +55,7 @@
         <div class="lab-feedback" id="gallery-feedback" role="status" aria-live="polite">
           <strong id="gallery-status">Comprobando los embeddings de referencia…</strong>
           <p id="gallery-description">La galería precalculada se obtiene de un archivo binario; no hay que volver a procesar sus 5.749 imágenes.</p>
-          <label class="gallery-import" for="gallery-file">Los vectores son biométricos y deben protegerse. Carga aquí la galería v2, calculada con detección y alineación facial:
+          <label class="gallery-import" for="gallery-file">Los vectores son biométricos y deben protegerse. Carga aquí la galería v3; incluye los casos recuperados con métodos alternativos, documentados en el informe:
             <input id="gallery-file" type="file" accept=".pfg,application/octet-stream">
           </label>
         </div>
