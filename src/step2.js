@@ -49,7 +49,8 @@ function previewSample() {
   elements.galleryCount.textContent = `${cohort.gallery.length} referencias`;
   elements.probeCount.textContent = `${cohort.probes.length} fotografías`;
   const fragment = document.createDocumentFragment();
-  for (const probe of cohort.probes.slice(0, 3)) {
+  const examples = [...cohort.probes.slice(0, 2), cohort.probes.at(-1)];
+  for (const probe of examples) {
     const card = createElement("article", "preview-card");
     const photos = createElement("div", "preview-pair");
     const reference = cohort.gallery.find((entry) => entry.person.id === probe.person.id);
