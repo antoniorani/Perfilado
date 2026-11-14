@@ -27,11 +27,13 @@ test("gallery sizes outside the documented workshop range are rejected", () => {
 });
 
 test("LFW image URLs for later photographs respect actual 1,000-file shard boundaries", () => {
-  const index = profiles.find((p) => p.imageOffset < 1000 && p.imageOffset + p.imageCount > 1000);
-  assert.ok(index, "expected an identity straddling the 1,000th image boundary");
-  const before = 1000 - index.imageOffset;
-  assert.match(photoUrl(index, before), /\/images\/000\//);
-  assert.match(photoUrl(index, before + 1), /\/images\/001\//);
+  const index = profiles.find((p) =>
+    Math.floor(p.imageOffset / 1000) < Math.floor((p.imageOffset + p.imageCount - 1) / 1000));
+  assert.ok(index, "expected an identity straddling a 1,000-image shard boundary");
+  const originalShard = Math.floor(index.imageOffset / 1000);
+  const afterBoundary = (originalShard + 1) * 1000 - index.imageOffset + 1;
+  assert.ok(photoUrl(index, afterBoundary - 1).includes(`/images/${String(originalShard).padStart(3, "0")}/`));
+  assert.ok(photoUrl(index, afterBoundary).includes(`/images/${String(originalShard + 1).padStart(3, "0")}/`));
   assert.throws(() => photoUrl(index, index.imageCount + 1), RangeError);
 });
 
