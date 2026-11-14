@@ -2,9 +2,6 @@ name: Verify external assets (diagnostic)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feat/paso2-biometria-real
 
 permissions:
   contents: read
