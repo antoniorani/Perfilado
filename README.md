@@ -165,7 +165,7 @@ La app carga automáticamente los tres CSV directamente del [repositorio RUW ori
 
 Las coincidencias textuales se excluyen con prioridad **prueba → validación → entrenamiento** para que un ejemplo aparezca como máximo en una partición. Este filtro solo utiliza el texto, no las etiquetas de prueba, y reduce el riesgo de contaminación de la evaluación. Las cifras originales permanecen visibles para que no se oculten los descartes.
 
-**No incluimos en Perfilado una copia de los tuits ni sus autores**. Los textos se obtienen en el navegador desde la fuente y se retiran las menciones de usuario, correos y URL antes de mostrarlos o modelarlos; sigue habiendo contenido de terceros y **no podemos garantizar anonimización completa**. No se vinculan las publicaciones a las personas reales fotografiadas en LFW. El acceso a RUW depende de internet y del servidor de GitHub, y la reutilización del texto debe respetar los derechos y condiciones correspondientes de los autores y de la plataforma.
+**No almacenamos ni versionamos una copia de los tuits ni sus autores en este repositorio**. Los textos se descargan desde la fuente y se muestran temporalmente en el navegador, retirando menciones de usuario, correos y URL antes de mostrarlos o modelarlos. Son publicaciones de terceros, algunas con lenguaje ofensivo o información no verificada, y **no podemos garantizar anonimización completa**. No se vinculan las publicaciones a las personas reales fotografiadas en LFW. El acceso a RUW depende de internet y del servidor de GitHub, y la reutilización del texto debe respetar los derechos y condiciones correspondientes de los autores y de la plataforma.
 
 ### Modelos reales y experimento
 
