@@ -5,6 +5,7 @@ on:
     branches: [feat/gallery-5749-test100]
     paths:
       - scripts/build-gallery.mjs
+      - scripts/combine-gallery.mjs
       - .github/workflows/precompute-gallery.yml
   workflow_dispatch:
 
@@ -12,24 +13,48 @@ permissions:
   contents: read
 
 jobs:
-  gallery:
+  calculate:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 85
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install pretrained face-api runtime
+      - name: Install exact model runtime
         run: npm install --no-save --no-package-lock face-api.js@0.22.2 canvas@3.2.0
-      - name: Compute sample face descriptors
+      - name: Calculate genuine face descriptors (partitioned)
         env:
-          LIMIT: "5"
+          SHARD_COUNT: "16"
+          SHARD_INDEX: ${{ matrix.shard }}
         run: node scripts/build-gallery.mjs
-      - name: Preserve computed sample and reproducibility report
-        if: always()
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: lfw-gallery-validation
+          name: lfw-gallery-part-${{ matrix.shard }}
           path: build/
-          if-no-files-found: warn
+          retention-days: 7
+  combine:
+    needs: calculate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: lfw-gallery-part-*
+          path: build/parts/
+      - name: Assemble and validate all 5,749 real descriptors
+        run: node scripts/combine-gallery.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lfw-gallery-all-5749
+          path: build/final/
+          retention-days: 30
+          compression-level: 1
