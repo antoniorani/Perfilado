@@ -1,116 +1,53 @@
-/** Build actual face-api.js descriptors for the first LFW image of each subject.
- *
- * Run in GitHub Actions; do not invent descriptors, and never silently replace failures.
- * The output is a privacy-sensitive biometric template matrix.
- */
+/** Batch-compute real aligned face embeddings; no fabricated fallback vectors. */
 import fs from "node:fs/promises";
-import path from "node:path";
-import os from "node:os";
-import { createRequire } from "node:module";
 import { createProfiles, photoUrl } from "../src/core.js";
+import { FACE_API_VERSION, PIPELINE_ID } from "../src/face-pipeline.js";
+import { loadFaceModels, extractRemoteFaceDescriptor } from "./node-face-model.mjs";
 
-const require = createRequire(import.meta.url);
-const faceapi = require("face-api.js");
-const canvas = require("canvas");
-const { Canvas, Image, ImageData } = canvas;
-faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
-
-const MODEL_URL = "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights";
-const MODEL_NAME = "face_recognition_model-weights_manifest.json";
-const OUT_DIR = process.env.OUT_DIR || "./build";
-const LIMIT = Number(process.env.LIMIT || "0");
-const SHARD_COUNT = Number(process.env.SHARD_COUNT || "1");
-const SHARD_INDEX = Number(process.env.SHARD_INDEX || "0");
-if (!Number.isInteger(SHARD_COUNT) || SHARD_COUNT < 1 || !Number.isInteger(SHARD_INDEX) || SHARD_INDEX < 0 || SHARD_INDEX >= SHARD_COUNT) {
-  throw new RangeError("Invalid batch partition");
+const out = process.env.OUT_DIR || "./build";
+const limit = Number(process.env.LIMIT || 0);
+const partitions = Number(process.env.SHARD_COUNT || 1);
+const partition = Number(process.env.SHARD_INDEX || 0);
+if (![limit,partitions,partition].every(Number.isInteger) || partitions < 1 || partition < 0 || partition >= partitions || limit < 0) {
+  throw new RangeError("Invalid partition or limit");
 }
-const retryDelay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const roster = JSON.parse(await fs.readFile(new URL("../data/lfw-identities.json", import.meta.url), "utf8"));
+const profiles = createProfiles(roster.identities);
+const chosen = profiles.map((person, index) => ({person,index}))
+  .filter((x)=>x.index % partitions === partition);
+const selected = limit ? chosen.slice(0,limit) : chosen;
+console.log(`Aligned gallery batch ${partition + 1}/${partitions}, subjects: ${selected.length}`);
+const started = Date.now();
+await loadFaceModels();
 
-async function getBytes(url, attempts = 5) {
-  let failure;
-  for (let n = 0; n < attempts; n += 1) {
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return Buffer.from(await res.arrayBuffer());
-    } catch (error) {
-      failure = error;
-      if (n + 1 < attempts) await retryDelay(700 * (n + 1) ** 2);
-    }
+const vectors = new Float32Array(selected.length * 128);
+const failed = [];
+let valid = 0;
+for (let i = 0; i < selected.length; i += 1) {
+  const { person, index } = selected[i];
+  try {
+    const descriptor = await extractRemoteFaceDescriptor(photoUrl(person,1));
+    vectors.set(descriptor,i*128);
+    valid += 1;
+  } catch(error) {
+    failed.push({index,id:person.id,reason:String(error.message||error)});
+    vectors.fill(NaN,i*128,(i+1)*128);
   }
-  throw new Error(`No se pudo cargar ${url}: ${failure?.message}`);
-}
-
-async function downloadWeights() {
-  const modelPath = await fs.mkdtemp(path.join(os.tmpdir(), "lfw-model-"));
-  const manifest = JSON.parse((await getBytes(`${MODEL_URL}/${MODEL_NAME}`)).toString("utf8"));
-  await fs.writeFile(path.join(modelPath, MODEL_NAME), JSON.stringify(manifest));
-  const weightFiles = [...new Set(manifest.flatMap((group) => group.paths))];
-  for (const file of weightFiles) {
-    console.log(`Downloading model shard: ${file}`);
-    await fs.writeFile(path.join(modelPath, file), await getBytes(`${MODEL_URL}/${file}`));
+  if ((i+1)%25===0 || i+1===selected.length) {
+    console.log(`Aligned ${i+1}/${selected.length}: valid=${valid}, failed=${failed.length}; elapsed=${Math.round((Date.now()-started)/1000)}s`);
   }
-  await faceapi.nets.faceRecognitionNet.loadFromDisk(modelPath);
-  return { model: MODEL_NAME, weightFiles };
 }
-
-async function main() {
-  const start = Date.now();
-  const index = JSON.parse(await fs.readFile(new URL("../data/lfw-identities.json", import.meta.url), "utf8"));
-  const all = createProfiles(index.identities);
-  const chosen = all.map((person, index) => ({ person, index }))
-    .filter(({ index }) => index % SHARD_COUNT === SHARD_INDEX);
-  const subjects = LIMIT > 0 ? chosen.slice(0, LIMIT) : chosen;
-  console.log(`Starting batch ${SHARD_INDEX + 1}/${SHARD_COUNT}: ${subjects.length} real descriptors of ${all.length} LFW subjects`);
-  const weights = await downloadWeights();
-  const embeddings = new Float32Array(subjects.length * 128);
-  const failed = [];
-  let completed = 0;
-  for (let i = 0; i < subjects.length; i += 1) {
-    const { person, index: globalIndex } = subjects[i];
-    try {
-      const bytes = await getBytes(photoUrl(person, 1));
-      const image = await canvas.loadImage(bytes);
-      const descriptor = await faceapi.computeFaceDescriptor(image);
-      if (!descriptor || descriptor.length !== 128 || !Array.from(descriptor).every(Number.isFinite)) {
-        throw new Error("face-api.js returned a missing or invalid descriptor");
-      }
-      embeddings.set(descriptor, i * 128);
-      completed += 1;
-    } catch (error) {
-      failed.push({ index: globalIndex, id: person.id, reason: String(error.message || error) });
-      // NaN signals a missing descriptor; never interpret it as a 0-vector match.
-      embeddings.fill(NaN, i * 128, (i + 1) * 128);
-    }
-    if ((i + 1) % 50 === 0 || i + 1 === subjects.length) {
-      const seconds = (Date.now() - start) / 1000;
-      const rate = (i + 1) / Math.max(seconds, 0.01);
-      const eta = Math.round((subjects.length - i - 1) / Math.max(rate, 0.001));
-      console.log(`Processed ${i + 1}/${subjects.length}; valid=${completed}, failed=${failed.length}; elapsed=${Math.round(seconds)}s, ETA=${eta}s`);
-    }
-  }
-  await fs.mkdir(OUT_DIR, { recursive: true });
-  const bytes = Buffer.from(embeddings.buffer, embeddings.byteOffset, embeddings.byteLength);
-  await fs.writeFile(path.join(OUT_DIR, "lfw-gallery.f32"), bytes);
-  const report = {
-    source: "Labeled Faces in the Wild, first photo per identity",
-    shardIndex: SHARD_INDEX,
-    shardCount: SHARD_COUNT,
-    originalIdentityCount: all.length,
-    globalIndices: subjects.map(({ index }) => index),
-    model: "face-api.js 0.22.2 face_recognition_model",
-    operation: "faceapi.computeFaceDescriptor(image)",
-    dimensions: 128,
-    order: "same index as data/lfw-identities.json",
-    subjects: subjects.length,
-    valid: completed,
-    failed,
-    bytes: bytes.length,
-    floatFormat: "Float32 little-endian",
-    modelWeights: weights,
-    elapsedSeconds: Math.round((Date.now() - start) / 1000),
-  };
-  await fs.writeFile(path.join(OUT_DIR, "lfw-gallery-report.json"), JSON.stringify(report, null, 2));
-  console.log(JSON.stringify({subjects: report.subjects, valid: report.valid, failed: failed.length, elapsedSeconds: report.elapsedSeconds}, null, 2));
-}
-main().catch((error) => { console.error(error); process.exitCode = 1; });
+await fs.mkdir(out,{recursive:true});
+await fs.writeFile(`${out}/lfw-gallery-part.f32`,Buffer.from(vectors.buffer));
+const report = {
+  source:"LFW original 250px photos; first photograph for each subject",
+  pipeline:PIPELINE_ID,model:`face-api.js ${FACE_API_VERSION}`,
+  operation:"detectSingleFace(ssdMobilenetv1).withFaceLandmarks().withFaceDescriptor()",
+  referenceCatalog:"data/lfw-identities.json",
+  shardIndex:partition,shardCount:partitions,originalIdentityCount:profiles.length,
+  globalIndices:selected.map((x)=>x.index),
+  dimensions:128,subjects:selected.length,valid,failed,
+  bytes:vectors.byteLength,elapsedSeconds:Math.round((Date.now()-started)/1000),
+};
+await fs.writeFile(`${out}/lfw-gallery-part-report.json`,JSON.stringify(report,null,2));
+console.log("BATCH_RESULT",JSON.stringify({subjects:report.subjects,valid,failures:failed.length}));
