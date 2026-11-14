@@ -2,7 +2,7 @@ import { createProfiles, getSummary, photoUrl } from "./core.js";
 import { chooseProbePhotos, readGallery, nearestCandidates, classifyProbe, summariseProbes } from "./full-gallery.js";
 import { extractDescriptor, ensureModels } from "./face-engine.js";
 import { setupAnswers } from "./answers.js";
-import { PIPELINE_ID } from "./face-pipeline.js";
+import { GALLERY_VERSION } from "./gallery-format.js";
 
 const $ = (selector) => document.querySelector(selector);
 const formatter = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 1 });
@@ -92,7 +92,7 @@ function activateGallery(buffer, origin) {
   gallery = loaded.gallery;
   elements.launch.disabled = false;
   galleryFeedback(
-    `Galería cargada: ${formatter.format(loaded.gallery.length)} embeddings reales`,
+    `Galería cargada: ${formatter.format(loaded.gallery.length)} vectores de referencia reales`,
     loaded.missing.length
       ? `${loaded.missing.length} referencias no son válidas y quedan excluidas. Origen: ${origin}.`
       : `Todos los vectores están disponibles. Origen: ${origin}. Ya puedes identificar las 100 fotos nuevas.`,
@@ -103,14 +103,14 @@ function activateGallery(buffer, origin) {
 
 async function loadGallery() {
   try {
-    const response = await fetch("./data/lfw-gallery-v2.pfg", { cache: "default" });
+    const response = await fetch("./data/lfw-gallery-v3.pfg", { cache: "default" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     activateGallery(await response.arrayBuffer(), "galería precomputada");
   } catch (error) {
     elements.launch.disabled = true;
     galleryFeedback(
       "La galería precalculada no está disponible automáticamente",
-      `Puedes seleccionar «lfw-gallery-v2.pfg», con rostros detectados y alineados. El archivo anterior (.f32) ya no es válido. Detalle: ${error.message}.`,
+      `Puedes seleccionar «lfw-gallery-v3.pfg», que incluye las referencias recuperadas. Las versiones anteriores (.f32 y v2.pfg) no son compatibles. Detalle: ${error.message}.`,
       true,
     );
   }
@@ -150,7 +150,7 @@ async function validateGalleryParity() {
     const discrepancy = Math.hypot(...vector.map((value, index) =>
       value - reference.descriptor[index]));
     if (discrepancy > 0.12) {
-      throw new Error(`La galería (${PIPELINE_ID}) y el navegador no producen el mismo vector para una fotografía de control (distancia ${formatDistance(discrepancy)}). Recalcula la galería con la versión actual.`);
+      throw new Error(`La galería (${GALLERY_VERSION}) y el navegador no producen el mismo vector para una fotografía de control (distancia ${formatDistance(discrepancy)}). Recalcula la galería con la versión actual.`);
     }
     elements.modelDescription.textContent =
       `Control superado: distancia de consistencia ${formatDistance(discrepancy)} para la misma fotografía.`;

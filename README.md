@@ -103,7 +103,7 @@ La galería y el informe están en el artefacto **lfw-aligned-v2-all-5749** de l
 - `lfw-gallery-v2-report.json`: identificador de método, SHA-256 de la galería, posiciones que pudieron o no procesarse y trazabilidad del cálculo.
 - `lfw-evaluation-100.json`: métricas reales top-1 y por umbral sobre las 100 imágenes de prueba, sin almacenar sus embeddings.
 
-**La galería v1 es incompatible:** no uses `lfw-gallery.f32` de los cálculos anteriores. La página `biometria.html` acepta exclusivamente `lfw-gallery-v2.pfg`. No basta con renombrar el archivo viejo: es necesario regenerarlo con la detección y alineación nuevas.
+**La galería v1 es incompatible:** no uses `lfw-gallery.f32` de los cálculos anteriores. La página `biometria.html` acepta la galería `lfw-gallery-v3.pfg` una vez actualizada; los modelos anteriores no sirven como sustituto. No basta con renombrar el archivo viejo: es necesario regenerarlo con la detección y alineación nuevas.
 
 Para utilizarlo en clase, descarga el artefacto de GitHub Actions, extrae el archivo `.pfg` y selecciónalo en el campo de carga local del paso 2. El navegador lo conserva únicamente en memoria. La web puede cargarlo automáticamente desde `data/lfw-gallery-v2.pfg` **solo si se revisa y autoriza expresamente su difusión pública**.
 
@@ -114,6 +114,29 @@ Para utilizarlo en clase, descarga el artefacto de GitHub Actions, extrae el arc
 - La elección de 100 casos es reproducible; todos aparecen en la galería. **No se mide** la tasa de falsos positivos sobre personas completamente desconocidas.
 - La muestra y el modelo no están validados para decisiones operativas. La distancia es una medida geométrica, **no una probabilidad de identidad**.
 - El umbral por defecto es didáctico y debe interpretarse con los resultados del modelo v2; cambiarlo no modifica qué identidad ocupa el primer lugar.
+
+## Recuperación de las 302 referencias sin rostro detectado
+
+El experimento v2 generó **5.447 vectores válidos y dejó 302 referencias sin embedding** porque el detector SSD no localizó un rostro con suficiente confianza. El sistema original no tenía una fase de recuperación.
+
+La versión v3 **conserva exactamente los 5.447 embeddings v2** y reintenta únicamente los 302 casos pendientes mediante:
+
+1. SSD MobileNet con umbral de confianza menor, pero manteniendo landmarks y alineación.
+2. TinyFaceDetector y los mismos 68 landmarks y red de reconocimiento.
+3. SSD aplicado a una imagen ampliada, con alineación de landmarks.
+4. Solo si las anteriores fallan: embedding real de la imagen original sin alineación facial confirmada. **Estos casos están identificados como `direct-unverified` y tienen menor fiabilidad**. No deben presentarse como detecciones verificadas.
+
+La galería `lfw-gallery-v3.pfg` usa una cabecera de versión nueva, conserva las posiciones de las 5.749 personas y documenta en `lfw-gallery-v3-report.json` el método utilizado para recuperar cada imagen, así como cualquier fallo residual.
+
+**Recálculo completo verificado: 5.749 vectores finitos / 5.749 identidades.** Los 302 casos se han recuperado con SSD de confianza reducida (**238**), TinyFaceDetector alineado (**59**) y descriptor directo sin alineación confirmada (**5**). Se han conservado bit a bit los **5.447 vectores v2 originales**.
+
+- Artefacto: [lfw-complete-v3-5749, GitHub Actions](https://github.com/antoniorani/Perfilado/actions/runs/43627549177)
+- SHA-256 de `lfw-gallery-v3.pfg`: `9f71e3b87b8ad19baad40c9ba1f38b3ce7d23308997b3f2f9a43c55061e3c27c`
+- Forma: 5.749 × 128 float32 + 64 bytes de cabecera; **2.943.552 bytes**.
+
+**No se debe interpretar esto como 5.749 identificaciones fiables**: los cinco vectores `direct-unverified` se han generado mediante la red de reconocimiento, pero sin que ningún detector haya confirmado y alineado el rostro. El archivo contiene vectores reales, y el informe documenta expresamente esa diferencia de calidad. Añadir referencias más débiles **no garantiza una mejora en la tasa de aciertos**.
+
+**Atención a la privacidad:** los embeddings generados a partir de caras de personas identificadas constituyen plantillas biométricas que no deben difundirse indiscriminadamente. La web admite la importación local del fichero, sin necesidad de subirlo a GitHub Pages. Los artefactos de GitHub Actions también están sujetos a permisos de acceso y políticas de retención y deben gestionarse adecuadamente.
 
 ## GitHub Pages
 

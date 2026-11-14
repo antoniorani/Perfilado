@@ -53,3 +53,18 @@ export async function extractRemoteFaceDescriptor(imageUrl) {
   const image = await canvas.loadImage(bytes);
   return computeAlignedDescriptor(api, image);
 }
+
+/** Additional real detector used only for LFW photos missed by SSD. */
+export async function loadTinyFaceModel() {
+  const name = "tiny_face_detector_model-weights_manifest.json";
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "perfilado-tiny-"));
+  const bytes = await downloadBytes(`${ROOT}/${name}`);
+  const manifest = JSON.parse(bytes.toString("utf8"));
+  await fs.writeFile(path.join(directory, name), bytes);
+  const shards = [...new Set(manifest.flatMap((group)=>group.paths))];
+  for (const filename of shards) {
+    await fs.writeFile(path.join(directory,filename),await downloadBytes(`${ROOT}/${filename}`));
+  }
+  await api.nets.tinyFaceDetector.loadFromDisk(directory);
+}
+export { api as faceapi, canvas };

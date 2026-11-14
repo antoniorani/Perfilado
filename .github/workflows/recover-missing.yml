@@ -1,0 +1,98 @@
+name: Recover remaining 302 LFW facial descriptors
+
+on:
+  push:
+    branches: [feat/recover-missing-face-embeddings]
+    paths:
+      - scripts/recover-missing.mjs
+      - scripts/combine-recovered.mjs
+      - .github/workflows/recover-missing.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        shard: [0,1,2,3,4,5,6,7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Retrieve verified source reference file privately
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 43620492398
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: lfw-aligned-v2-all-5749
+          path: build/base
+      - run: npm install --no-save --no-package-lock face-api.js@0.22.2 canvas@3.2.0
+      - name: Retry missing photos with face detectors and documented fallback
+        env:
+          SHARD_COUNT: "8"
+          SHARD_INDEX: ${{ matrix.shard }}
+        run: node scripts/recover-missing.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lfw-v3-recovery-${{ matrix.shard }}
+          path: build/recovery
+          retention-days: 7
+
+  merge:
+    needs: recover
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 43620492398
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: lfw-aligned-v2-all-5749
+          path: build/base
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: lfw-v3-recovery-*
+          path: build/patches
+      - name: Verify recovered rows and create v3 gallery
+        run: node scripts/combine-recovered.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lfw-complete-v3-5749
+          path: build/final
+          retention-days: 30
+          compression-level: 1
+
+  evaluate:
+    needs: merge
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/download-artifact@v4
+        with:
+          name: lfw-complete-v3-5749
+          path: build/final
+      - run: npm install --no-save --no-package-lock face-api.js@0.22.2 canvas@3.2.0
+      - name: Validate top-1 against 100 real photos
+        run: node scripts/evaluate-gallery.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lfw-complete-v3-100-validation
+          path: build/final/lfw-evaluation-100.json
+          retention-days: 30
