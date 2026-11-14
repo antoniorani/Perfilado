@@ -92,7 +92,7 @@ function activateGallery(buffer, origin) {
   gallery = loaded.gallery;
   elements.launch.disabled = false;
   galleryFeedback(
-    `Galería cargada: ${formatter.format(loaded.gallery.length)} embeddings reales`,
+    `Galería cargada: ${formatter.format(loaded.gallery.length)} vectores de referencia reales`,
     loaded.missing.length
       ? `${loaded.missing.length} referencias no son válidas y quedan excluidas. Origen: ${origin}.`
       : `Todos los vectores están disponibles. Origen: ${origin}. Ya puedes identificar las 100 fotos nuevas.`,
@@ -103,14 +103,14 @@ function activateGallery(buffer, origin) {
 
 async function loadGallery() {
   try {
-    const response = await fetch("./data/lfw-gallery-v2.pfg", { cache: "default" });
+    const response = await fetch("./data/lfw-gallery-v3.pfg", { cache: "default" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     activateGallery(await response.arrayBuffer(), "galería precomputada");
   } catch (error) {
     elements.launch.disabled = true;
     galleryFeedback(
       "La galería precalculada no está disponible automáticamente",
-      `Puedes seleccionar «lfw-gallery-v2.pfg», con rostros detectados y alineados. El archivo anterior (.f32) ya no es válido. Detalle: ${error.message}.`,
+      `Puedes seleccionar «lfw-gallery-v3.pfg», que incluye las referencias recuperadas. Las versiones anteriores (.f32 y v2.pfg) no son compatibles. Detalle: ${error.message}.`,
       true,
     );
   }
