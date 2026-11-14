@@ -1,0 +1,35 @@
+name: Precompute real LFW gallery (evaluation)
+
+on:
+  push:
+    branches: [feat/gallery-5749-test100]
+    paths:
+      - scripts/build-gallery.mjs
+      - .github/workflows/precompute-gallery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gallery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install pretrained face-api runtime
+        run: npm install --no-save --no-package-lock face-api.js@0.22.2 canvas@3.2.0
+      - name: Compute sample face descriptors
+        env:
+          LIMIT: "5"
+        run: node scripts/build-gallery.mjs
+      - name: Preserve computed sample and reproducibility report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfw-gallery-validation
+          path: build/
+          if-no-files-found: warn
