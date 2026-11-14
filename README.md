@@ -40,7 +40,7 @@ scripts/combine-gallery.mjs Ensamblado y validación de 16 lotes
 .github/workflows/precompute-gallery.yml  Proceso de precálculo
 data/lfw-identities.json   Índice real LFW
 tests/core.test.js         Pruebas del catálogo
- tests/full-gallery.test.js  Pruebas de búsqueda y umbrales
+tests/full-gallery.test.js   Pruebas de búsqueda y umbrales
 ```
 
 Para trabajar localmente:
@@ -79,6 +79,12 @@ La automatización `Precompute real LFW gallery (evaluation)` puede iniciarse ma
 - `lfw-gallery.f32`: matriz de float32 de 128 dimensiones por identidad, ordenada igual que `data/lfw-identities.json`.
 - `lfw-gallery-report.json`: trazabilidad del modelo, recuentos, fallos, índices y tiempos de cada lote.
 
+**Resultado verificado del cálculo del 14 de noviembre de 2026:** las **5.749 referencias se calcularon correctamente**, **0 fallos** y 735.872 componentes float32 finitos. El ZIP y el informe se pueden obtener desde [esta ejecución completada de GitHub Actions](https://github.com/antoniorani/Perfilado/actions/runs/43617396255). La extracción se dividió en 16 lotes y uno de ellos tuvo que recuperarse en cuatro sublotes; el ensamblador verificó que ninguna identidad se repitiese ni faltase.
+
+- Tamaño exacto: `2943488` bytes.
+- SHA-256 de `lfw-gallery.f32`: `7831038e05b9bb74c58ea481a340128e8151ea71852bdbcc4021716666fa3074`.
+- Dimensiones: `5749 × 128` en el mismo orden que `data/lfw-identities.json`.
+
 No se crean embeddings ficticios cuando una imagen falla: se representa como no válida y se documenta en el informe. La validación de integridad exige 5.749 posiciones y señala si alguna referencia no pudo calcularse.
 
 ### Decisión de publicación y privacidad
@@ -88,6 +94,8 @@ No se crean embeddings ficticios cuando una imagen falla: se representa como no 
 La página intentará cargar automáticamente `data/lfw-gallery.f32` **si el responsable del proyecto decide incorporarlo tras revisar la licitud y las condiciones de difusión**. Si no existe, la interfaz informa de ello y permite seleccionar el archivo localmente.
 
 La publicación abierta del conjunto completo de plantillas **exige evaluación específica de protección de datos**; su presencia en un repositorio público no debe decidirse por mera conveniencia técnica.
+
+**Uso en el aula sin publicación biométrica:** descarga el ZIP, extrae `lfw-gallery.f32` y, en el paso 2, selecciónalo en el campo de carga local. La web lo procesa exclusivamente en memoria del navegador. No necesitas instalar paquetes ni calcular los 5.749 embeddings de nuevo. Si se decide publicarlo expresamente, copia el archivo al directorio `data/` y fuerza su incorporación a Git solo tras la revisión correspondiente (`data/*.f32` se ignora para evitar publicaciones accidentales).
 
 Las peticiones de fotografías de LFW y de pesos del modelo se realizan a proveedores externos; los embeddings de las nuevas fotos se calculan en el navegador y no se envían a un backend. Las respuestas del alumnado permanecen en `localStorage` o en los archivos TXT que exporten.
 
