@@ -6,7 +6,7 @@ Laboratorio docente de inteligencia artificial, identificación facial y protecc
 
 - **Introducción:** encargo del equipo técnico y recorrido de la práctica, presentado al final.
 - **Paso 1:** una imagen por identidad, nombre, código de perfil y atributos sintéticos. Exploración con búsqueda, filtros, gráficos y preguntas de reflexión.
-- **Paso 2:** 5.749 embeddings iniciales precalculados y 100 nuevas imágenes de LFW procesadas en el navegador, con búsqueda 1:N, top-1 y ajuste de umbral.
+- **Paso 2:** 5.749 referencias calculadas con detección y alineación facial, y 100 fotos nuevas procesadas en el navegador para buscar top-1/top-5 y ajustar el umbral.
 - **Pasos 3–4:** análisis NLP y evaluación conjunta. Pendientes de desarrollar.
 
 ## Datos
@@ -33,10 +33,15 @@ biometria.html             Paso 2: identificación biométrica
 assets/biometrics.css      Estilos específicos del laboratorio
 src/answers.js             Respuestas compartidas entre pasos
 src/face-engine.js         Modelos preentrenados reales
+src/face-pipeline.js       Pipeline compartido de detección, alineación y embeddings
+src/gallery-format.js      Cabecera versionada y validación del catálogo
 src/step2.js               Experimento real de 100 fotografías
 src/full-gallery.js        Selección reproducible, lectura f32 y búsqueda top-5
 scripts/build-gallery.mjs   Generación reproducible de embeddings LFW
-scripts/combine-gallery.mjs Ensamblado y validación de 16 lotes
+scripts/combine-gallery.mjs Ensamblado versionado de los lotes
+scripts/node-face-model.mjs Preparación común de modelos Node
+scripts/validate-alignment.mjs Validación de 24 identidades reales
+scripts/evaluate-gallery.mjs Evaluación de 100 fotos con 5.749 referencias
 .github/workflows/precompute-gallery.yml  Proceso de precálculo
 data/lfw-identities.json   Índice real LFW
 tests/core.test.js         Pruebas del catálogo
@@ -58,46 +63,57 @@ npm test
 
 Las respuestas se guardan localmente en el navegador, si el almacenamiento está disponible, y pueden exportarse a TXT. **La interfaz ya no ofrece descarga del conjunto de perfiles**.
 
-## Paso 2: 5.749 referencias / 100 fotografías de prueba
+## Paso 2: identificación con detección y alineación real
 
-### Método y comportamiento
+### Problema detectado y solución
 
-La nueva práctica separa el cálculo de **5.749 embeddings de referencia** de la búsqueda en tiempo real de **100 fotografías nuevas**:
+La primera versión (v1) calculaba descriptores pasando imágenes completas a `computeFaceDescriptor(image)`, sin detección y alineación. Los resultados observados (8 % top-1 en 100 fotos) no deben utilizarse como una medición válida del reconocimiento facial.
 
-1. El proceso de preparación usa la **primera foto de cada una de las 5.749 identidades** de LFW y calcula un vector de 128 componentes por persona con `face-api.js@0.22.2`. Se distribuye en 16 lotes de GitHub Actions y se ensambla en un único archivo binario `lfw-gallery.f32` de **2.943.488 bytes** (5.749 × 128 × 4).
-2. El alumnado recibe 100 fotografías de prueba, una segunda foto por cada una de **100 identidades diferentes y conocidas**, seleccionadas de forma determinista entre las 1.680 personas que tienen varias fotos en LFW. No se reutiliza la misma imagen inicial.
-3. Al iniciar el ejercicio se descargan los pesos preentrenados y el navegador calcula **un embedding real por fotografía de prueba** con el mismo método: `faceapi.computeFaceDescriptor(image)` sobre la imagen LFW original, de 250×250 píxeles.
-4. Cada vector de prueba se compara con **todas las referencias válidas** mediante distancia euclidiana y se muestran las cinco coincidencias más próximas. La distancia no es una probabilidad.
-5. **Top-1** significa que el candidato más cercano es la identidad correcta *sin umbral*. Un umbral configurable determina si la coincidencia se **acepta** o **rechaza**. El alumno observa aciertos aceptados, identificaciones erróneas aceptadas y rechazos. Si hay fallos de imagen o del modelo, se cuentan como **no procesadas**, no como predicciones.
+La versión **v2** utiliza la misma función `computeAlignedDescriptor()` en Node y en el navegador:
 
-**Límite experimental:** Las 100 personas de prueba figuran en la galería. Este experimento **no mide la tasa de identificación errónea de personas desconocidas**. El modelo de reconocimiento facial se ha utilizado previamente para estudiar LFW, de modo que el resultado no es una validación independiente ni permite extrapolaciones a una población real.
+1. Detector **SSD MobileNet V1** sobre la fotografía original de LFW.
+2. Detección de **68 puntos faciales** y alineación automática.
+3. Embedding de 128 componentes con **faceRecognitionNet**, usando pesos de `face-api.js@0.22.2`.
+4. Distancia euclidiana de cada una de las 100 fotografías nuevas a la galería de referencias.
+5. Evaluación separada de **top-1** (independiente del umbral), aciertos aceptados, errores aceptados, rechazos y fotos que no pudieron procesarse.
 
-### Generación del archivo de referencias
+Se usa el mismo módulo `src/face-pipeline.js` para los dos entornos. Para evitar comparar vectores de métodos diferentes, el archivo de referencias tiene ahora una cabecera con versión del modelo, tamaño y huella del catálogo, definida en `src/gallery-format.js`. Los archivos anteriores `.f32` se rechazan explícitamente.
 
-La automatización `Precompute real LFW gallery (evaluation)` puede iniciarse manualmente desde **Actions**. Sus 16 trabajos calculan los embeddings reales con la misma versión de la biblioteca y después comprueban el orden, el formato y la cantidad de vectores. La acción produce un artefacto descargable con:
+Además, la web vuelve a calcular un embedding de control a partir de una imagen ya presente en la galería y verifica su concordancia **antes de evaluar las 100 nuevas**.
 
-- `lfw-gallery.f32`: matriz de float32 de 128 dimensiones por identidad, ordenada igual que `data/lfw-identities.json`.
-- `lfw-gallery-report.json`: trazabilidad del modelo, recuentos, fallos, índices y tiempos de cada lote.
+### Validación previa
 
-**Resultado verificado del cálculo del 14 de noviembre de 2026:** las **5.749 referencias se calcularon correctamente**, **0 fallos** y 735.872 componentes float32 finitos. El ZIP y el informe se pueden obtener desde [esta ejecución completada de GitHub Actions](https://github.com/antoniorani/Perfilado/actions/runs/43617396255). La extracción se dividió en 16 lotes y uno de ellos tuvo que recuperarse en cuatro sublotes; el ensamblador verificó que ninguna identidad se repitiese ni faltase.
+Se ha ejecutado una prueba real sobre **24 identidades con dos fotografías de LFW cada una**: **24/24 coincidencias top-1** y ningún fallo de procesamiento dentro de esa muestra de 24 referencias. Este resultado comprueba que el procedimiento nuevo funciona mejor en esa muestra, pero **no equivale a una estimación sobre las 5.749 referencias**.
 
-- Tamaño exacto: `2943488` bytes.
-- SHA-256 de `lfw-gallery.f32`: `7831038e05b9bb74c58ea481a340128e8151ea71852bdbcc4021716666fa3074`.
-- Dimensiones: `5749 × 128` en el mismo orden que `data/lfw-identities.json`.
+La automatización independiente [Precompute aligned LFW gallery v2 and validate](https://github.com/antoniorani/Perfilado/actions/runs/43620492398) **ha completado correctamente todos sus trabajos** y contrastado las 100 fotografías con la galería completa.
 
-No se crean embeddings ficticios cuando una imagen falla: se representa como no válida y se documenta en el informe. La validación de integridad exige 5.749 posiciones y señala si alguna referencia no pudo calcularse.
+**Resultados reales verificados el 14 de noviembre de 2026:**
 
-### Decisión de publicación y privacidad
+- **5.749 fotografías de referencia intentadas**, **5.447 embeddings válidos** y **302 fotografías no detectadas o no procesadas**, excluidas explícitamente.
+- **100 fotografías nuevas intentadas**, **99 procesadas**, **1 fallo de detección**.
+- **78/99 top-1 correctas (78,8 %)**; top-5 correcto en **85/99 (85,9 %)**.
+- Con umbral **0,55**: **78 identificaciones aceptadas correctas**, **20 equivocadas aceptadas**, **1 rechazada** y **1 fotografía no procesada**.
+- SHA-256 comprobado de `lfw-gallery-v2.pfg`: `2477d5c7231ee7940f5c501edc8e21e62116ac7d830a202343b2694e21940bab`.
 
-**Los embeddings faciales no son datos anónimos**: son representaciones biométricas calculadas a partir de fotografías de personas identificables. Por diseño, **el código no obliga a incorporarlos a un repositorio público**. El docente puede descargar el artefacto desde GitHub Actions y cargar el archivo `lfw-gallery.f32` desde la web, sin transmitir ese archivo al servidor.
+La galería y el informe están en el artefacto **lfw-aligned-v2-all-5749** de la ejecución citada. El informe `lfw-evaluation-100.json` documenta todas las métricas por umbral. El archivo v1 anterior no se puede utilizar con la nueva versión.
 
-La página intentará cargar automáticamente `data/lfw-gallery.f32` **si el responsable del proyecto decide incorporarlo tras revisar la licitud y las condiciones de difusión**. Si no existe, la interfaz informa de ello y permite seleccionar el archivo localmente.
+### Archivos y uso docente
 
-La publicación abierta del conjunto completo de plantillas **exige evaluación específica de protección de datos**; su presencia en un repositorio público no debe decidirse por mera conveniencia técnica.
+- `lfw-gallery-v2.pfg`: archivo binario versionado (64 bytes de cabecera + 5.749 × 128 valores `float32`). La longitud íntegra es 2.943.552 bytes. Los registros que no puedan procesarse quedan identificados como `NaN` y se excluyen explícitamente.
+- `lfw-gallery-v2-report.json`: identificador de método, SHA-256 de la galería, posiciones que pudieron o no procesarse y trazabilidad del cálculo.
+- `lfw-evaluation-100.json`: métricas reales top-1 y por umbral sobre las 100 imágenes de prueba, sin almacenar sus embeddings.
 
-**Uso en el aula sin publicación biométrica:** descarga el ZIP, extrae `lfw-gallery.f32` y, en el paso 2, selecciónalo en el campo de carga local. La web lo procesa exclusivamente en memoria del navegador. No necesitas instalar paquetes ni calcular los 5.749 embeddings de nuevo. Si se decide publicarlo expresamente, copia el archivo al directorio `data/` y fuerza su incorporación a Git solo tras la revisión correspondiente (`data/*.f32` se ignora para evitar publicaciones accidentales).
+**La galería v1 es incompatible:** no uses `lfw-gallery.f32` de los cálculos anteriores. La página `biometria.html` acepta exclusivamente `lfw-gallery-v2.pfg`. No basta con renombrar el archivo viejo: es necesario regenerarlo con la detección y alineación nuevas.
 
-Las peticiones de fotografías de LFW y de pesos del modelo se realizan a proveedores externos; los embeddings de las nuevas fotos se calculan en el navegador y no se envían a un backend. Las respuestas del alumnado permanecen en `localStorage` o en los archivos TXT que exporten.
+Para utilizarlo en clase, descarga el artefacto de GitHub Actions, extrae el archivo `.pfg` y selecciónalo en el campo de carga local del paso 2. El navegador lo conserva únicamente en memoria. La web puede cargarlo automáticamente desde `data/lfw-gallery-v2.pfg` **solo si se revisa y autoriza expresamente su difusión pública**.
+
+**Privacidad:** las plantillas de reconocimiento facial son información biométrica vinculable a identidades reales. Evitamos incorporarlas a la rama pública de GitHub. Los artefactos de Actions tienen una retención limitada, pero también deben tratarse como datos sensibles y gestionarse con las garantías necesarias. No se atribuyen posturas u opiniones políticas a las personas de LFW.
+
+### Límites docentes
+
+- La elección de 100 casos es reproducible; todos aparecen en la galería. **No se mide** la tasa de falsos positivos sobre personas completamente desconocidas.
+- La muestra y el modelo no están validados para decisiones operativas. La distancia es una medida geométrica, **no una probabilidad de identidad**.
+- El umbral por defecto es didáctico y debe interpretarse con los resultados del modelo v2; cambiarlo no modifica qué identidad ocupa el primer lugar.
 
 ## GitHub Pages
 

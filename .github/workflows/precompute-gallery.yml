@@ -1,6 +1,10 @@
-name: Precompute real LFW gallery (evaluation)
+name: Precompute aligned LFW gallery v2 and validate
 
 on:
+  push:
+    branches: [fix/aligned-face-embeddings-v2]
+    paths:
+      - .github/workflows/precompute-gallery.yml
   workflow_dispatch:
 
 permissions:
@@ -9,32 +13,34 @@ permissions:
 jobs:
   calculate:
     runs-on: ubuntu-latest
-    timeout-minutes: 85
+    timeout-minutes: 75
     strategy:
       fail-fast: false
-      max-parallel: 16
+      max-parallel: 48
       matrix:
-        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install exact model runtime
+      - name: Install pinned face model runtime
         run: npm install --no-save --no-package-lock face-api.js@0.22.2 canvas@3.2.0
-      - name: Calculate genuine face descriptors (partitioned)
+      - name: Compute aligned reference embeddings
         env:
-          SHARD_COUNT: "16"
+          SHARD_COUNT: "64"
           SHARD_INDEX: ${{ matrix.shard }}
         run: node scripts/build-gallery.mjs
       - uses: actions/upload-artifact@v4
         with:
-          name: lfw-gallery-part-${{ matrix.shard }}
+          name: lfw-v2-part-${{ matrix.shard }}
           path: build/
-          retention-days: 7
-  combine:
+          retention-days: 3
+
+  assemble:
     needs: calculate
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,13 +48,36 @@ jobs:
           node-version: "22"
       - uses: actions/download-artifact@v4
         with:
-          pattern: lfw-gallery-part-*
-          path: build/parts/
-      - name: Assemble and validate all 5,749 real descriptors
+          pattern: lfw-v2-part-*
+          path: build/parts
+      - name: Validate exact gallery count and pipeline version
         run: node scripts/combine-gallery.mjs
       - uses: actions/upload-artifact@v4
         with:
-          name: lfw-gallery-all-5749
+          name: lfw-aligned-v2-all-5749
           path: build/final/
-          retention-days: 30
+          retention-days: 7
           compression-level: 1
+
+  evaluate:
+    needs: assemble
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/download-artifact@v4
+        with:
+          name: lfw-aligned-v2-all-5749
+          path: build/final
+      - run: npm install --no-save --no-package-lock face-api.js@0.22.2 canvas@3.2.0
+      - name: Verify all 100 LFW photographs against 5749-person gallery
+        run: node scripts/evaluate-gallery.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lfw-v2-evaluation-100
+          path: build/final/lfw-evaluation-100.json
+          retention-days: 7

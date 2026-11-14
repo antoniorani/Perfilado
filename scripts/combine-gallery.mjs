@@ -1,62 +1,71 @@
-/** Reassemble independently computed, ordered and validated LFW descriptors. */
+/** Assemble aligned reference vectors with model metadata and full integrity checks. */
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createHash } from "node:crypto";
+import { createProfiles } from "../src/core.js";
+import { PIPELINE_ID } from "../src/face-pipeline.js";
+import { encodeGallery } from "../src/gallery-format.js";
 
-const PARTS = "./build/parts";
-const OUT = "./build/final";
-const ROWS = 5749;
-const WIDTH = 128;
-
-async function main() {
-  const entries = (await fs.readdir(PARTS, { withFileTypes: true })).filter((e) => e.isDirectory()).sort((a,b)=>a.name.localeCompare(b.name));
-  if (!entries.length) throw new Error("No batch artifacts");
-  const matrix = new Float32Array(ROWS * WIDTH);
-  matrix.fill(NaN);
-  const seen = new Uint8Array(ROWS);
-  const failures = [];
-  let model = null, count = 0;
-  const batches = [];
-  for (const entry of entries) {
-    const base = path.join(PARTS, entry.name);
-    const report = JSON.parse(await fs.readFile(path.join(base, "lfw-gallery-report.json"), "utf8"));
-    const bytes = await fs.readFile(path.join(base, "lfw-gallery.f32"));
-    if (report.bytes !== bytes.length || bytes.length !== report.globalIndices.length * WIDTH * 4) {
-      throw new Error(`Size mismatch in ${entry.name}`);
-    }
-    if (report.originalIdentityCount !== ROWS || (model != null && model !== report.model)) {
-      throw new Error(`Incompatible model or catalog in ${entry.name}`);
-    }
-    model = report.model;
-    const arr = new Float32Array(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
-    for (let i = 0; i < report.globalIndices.length; i += 1) {
-      const globalIndex = report.globalIndices[i];
-      if (!Number.isInteger(globalIndex) || globalIndex < 0 || globalIndex >= ROWS || seen[globalIndex]) {
-        throw new Error(`Duplicate or invalid global index ${globalIndex}`);
-      }
-      seen[globalIndex] = 1;
-      matrix.set(arr.subarray(i * WIDTH, (i + 1) * WIDTH), globalIndex * WIDTH);
-      count += 1;
-    }
-    failures.push(...report.failed);
-    batches.push({ batch: entry.name, valid: report.valid, failed: report.failed.length, seconds: report.elapsedSeconds });
+const partsDir = process.env.PARTS_DIR || "./build/parts";
+const outDir = process.env.OUT_DIR || "./build/final";
+const roster = JSON.parse(await fs.readFile(new URL("../data/lfw-identities.json",import.meta.url),"utf8"));
+const profiles = createProfiles(roster.identities);
+const rows = profiles.length, width = 128;
+const directories = (await fs.readdir(partsDir,{withFileTypes:true}))
+  .filter(x=>x.isDirectory()).map(x=>x.name).sort();
+if (!directories.length) throw new Error("Missing aligned gallery batch artifacts");
+const matrix = new Float32Array(rows*width);
+matrix.fill(NaN);
+const seen = new Uint8Array(rows);
+const failures = [];
+let found = 0;
+const batches = [];
+for (const dir of directories) {
+  const base = path.join(partsDir,dir);
+  const report = JSON.parse(await fs.readFile(path.join(base,"lfw-gallery-part-report.json"),"utf8"));
+  const bytes = await fs.readFile(path.join(base,"lfw-gallery-part.f32"));
+  if (report.pipeline !== PIPELINE_ID || report.originalIdentityCount !== rows
+    || report.dimensions !== width || report.bytes !== bytes.length
+    || bytes.length !== report.globalIndices.length*width*4) {
+    throw new Error(`Incompatible batch format: ${dir}`);
   }
-  if (count !== ROWS || seen.some((x) => x !== 1)) {
-    throw new Error(`Missing subjects: ${count} out of ${ROWS} present`);
+  const values = new Float32Array(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength));
+  for (let i=0;i<report.globalIndices.length;i+=1) {
+    const index = report.globalIndices[i];
+    if (!Number.isInteger(index)||index<0||index>=rows||seen[index]) {
+      throw new Error(`Duplicate or out-of-range gallery index: ${index} from ${dir}`);
+    }
+    seen[index] = 1;
+    matrix.set(values.subarray(i*width,(i+1)*width),index*width);
+    found += 1;
   }
-  const valid = Array.from({ length: ROWS }, (_, i) => matrix.subarray(i * WIDTH, (i + 1) * WIDTH))
-    .filter((v) => v.every(Number.isFinite)).length;
-  if (valid + failures.length !== ROWS) throw new Error("Inconsistent successful and failed references");
-  await fs.mkdir(OUT, { recursive: true });
-  await fs.writeFile(path.join(OUT, "lfw-gallery.f32"), Buffer.from(matrix.buffer));
-  const report = {
-    source: "LFW, first photograph for each of 5,749 people",
-    model, operation: "faceapi.computeFaceDescriptor(image)",
-    order: "same as data/lfw-identities.json", dimensions: WIDTH,
-    subjects: ROWS, valid, failed: failures.length,
-    failures, batches, bytes: matrix.byteLength
-  };
-  await fs.writeFile(path.join(OUT, "lfw-gallery-report.json"), JSON.stringify(report, null, 2));
-  console.log("Gallery combined:", JSON.stringify({ subjects: ROWS, valid, failed: failures.length, bytes: matrix.byteLength }));
-  if (failures.length) console.log("Failed IDs:", failures.slice(0, 30));
+  failures.push(...report.failed);
+  batches.push({name:dir,valid:report.valid,failed:report.failed.length,seconds:report.elapsedSeconds});
 }
-main().catch((error) => { console.error(error); process.exitCode = 1; });
+if (found !== rows || seen.some(x=>x!==1)) throw new Error(`Incomplete gallery: ${found}/${rows}`);
+const valid = Array.from({length:rows},(_,index)=>
+  matrix.subarray(index*width,(index+1)*width)).filter(x=>x.every(Number.isFinite)).length;
+if (valid + failures.length !== rows) throw new Error("Failed count and invalid rows mismatch");
+const buffer = encodeGallery(matrix,profiles);
+const bytes = Buffer.from(buffer);
+const sha256 = createHash("sha256").update(bytes).digest("hex");
+const report = {
+  pipeline:PIPELINE_ID,
+  operation:"ssdMobilenetv1 + 68 facial landmarks + aligned 128D descriptor",
+  model:"face-api.js 0.22.2",
+  source:"LFW first photo per person",
+  artifact:"lfw-gallery-v2.pfg",
+  format:"v2 header (64 bytes) + little-endian Float32 matrix",
+  dimensions:width,
+  subjects:rows,
+  valid,
+  failures,
+  failed:failures.length,
+  bytes:bytes.length,
+  sha256,
+  batches,
+};
+await fs.mkdir(outDir,{recursive:true});
+await fs.writeFile(path.join(outDir,report.artifact),bytes);
+await fs.writeFile(path.join(outDir,"lfw-gallery-v2-report.json"),JSON.stringify(report,null,2));
+console.log("ALIGNED_GALLERY_RESULT",JSON.stringify({subjects:rows,valid,failed:failures.length,bytes:bytes.length,sha256}));
