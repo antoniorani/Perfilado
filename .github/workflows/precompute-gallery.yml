@@ -1,12 +1,6 @@
 name: Precompute real LFW gallery (evaluation)
 
 on:
-  push:
-    branches: [feat/gallery-5749-test100]
-    paths:
-      - scripts/build-gallery.mjs
-      - scripts/combine-gallery.mjs
-      - .github/workflows/precompute-gallery.yml
   workflow_dispatch:
 
 permissions:
