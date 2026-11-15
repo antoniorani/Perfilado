@@ -263,3 +263,56 @@ a.journey-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); b
   .data-table .real-name { min-width: 150px; }
 }
 @media(prefers-reduced-motion:reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+
+
+/* Introduction: the journey is an overview, not a shortcut past the exercise. */
+.hero-author { margin: 23px 0 0; color: #b5cfc8; font-size: .85rem; }
+.hero-author strong { color: #fff; font-weight: 760; }
+.journey-cta { display: flex; justify-content: center; margin-top: 34px; }
+
+/* Step 1: selectable full-catalog distribution and accessible photo preview. */
+.distribution-controls { margin-bottom: 16px; }
+.distribution-controls .field { width: min(100%, 340px); }
+.distribution-card { max-width: 860px; }
+.distribution-card .chart-heading { margin-bottom: 22px; }
+.photo-zoom {
+  display: block;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 9px;
+  cursor: zoom-in;
+}
+.photo-zoom:hover .photo-thumb { border-color: #497f6e; box-shadow: 0 0 0 2px #d8e8de; }
+.photo-dialog {
+  border: 1px solid #dce5dd;
+  border-radius: 16px;
+  padding: 0;
+  width: min(92vw, 510px);
+  max-height: 90vh;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 24px 95px rgb(0 0 0 / 20%);
+}
+.photo-dialog::backdrop { background: rgb(12 28 33 / 68%); }
+.photo-dialog-content { padding: clamp(18px, 4vw, 27px); }
+.photo-dialog-header { display: flex; gap: 14px; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.photo-dialog-header h3 { margin: 0; font-size: 1.18rem; }
+.photo-dialog img {
+  display: block;
+  width: min(100%, 380px);
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  margin: 0 auto;
+  border-radius: 10px;
+  background: #edf1ed;
+}
+.photo-dialog img[hidden], .photo-dialog [hidden] { display: none; }
+.photo-dialog #photo-caption { margin: 17px 0 0; text-align: center; color: #566d63; font-size: .86rem; }
+.photo-dialog #photo-error { text-align: center; color: #a4533d; font-size: .85rem; }
+@media(max-width: 560px) {
+  .journey-cta .button { width: 100%; justify-content: center; }
+  .photo-dialog-header { align-items: flex-start; }
+  .photo-dialog-header h3 { font-size: 1rem; }
+}
