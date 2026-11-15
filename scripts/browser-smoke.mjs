@@ -12,17 +12,19 @@ try {
   await page.getByText("Corpus RUW cargado correctamente").waitFor({timeout:45000});
   const samples = await page.locator(".tweet-card").count();
   if (samples !== 5) throw new Error(`Expected 5 examples; got ${samples}`);
-  // Advanced model was genuinely trained offline; browser performs inference.
-  if (await page.locator("#model-select").inputValue() !== "joint-ridge") {
-    throw new Error("The new recommended model is not the default");
+  // The default is an on-device semantic model, not an offline trained artifact.
+  // For fast CI smoke testing, train the existing fully local TF-IDF baseline.
+  if (await page.locator("#model-select").inputValue() !== "semantic") {
+    throw new Error("The on-device semantic model should be the default");
   }
+  await page.locator("#model-select").selectOption("nb");
   await page.locator("#train-model").click();
-  await page.getByText("Modelo conjunto Ridge cargado y evaluado").waitFor({timeout:45000});
+  await page.getByText("Modelo entrenado:", {exact:false}).waitFor({timeout:45000});
   const score = (await page.locator("#metric-accuracy").textContent()).trim();
   const matrixRows = await page.locator("#confusion-matrix tbody tr").count();
-  const ridgeAccuracy = Number(score.replace("%", "").replace(",", ".")) / 100;
-  if (!(ridgeAccuracy > .53 && ridgeAccuracy < .61) || matrixRows !== 3) {
-    throw new Error(`Invalid pretrained Ridge validation score/matrix: ${score} / ${matrixRows}`);
+  const baselineAccuracy = Number(score.replace("%", "").replace(",", ".")) / 100;
+  if (!(baselineAccuracy > .3 && baselineAccuracy < .8) || matrixRows !== 3) {
+    throw new Error(`Invalid browser-trained Naive Bayes validation score/matrix: ${score} / ${matrixRows}`);
   }
   await page.locator("#model-select").selectOption("centroid");
   if (!(await page.locator("#validation-results").isHidden())) {
@@ -43,11 +45,47 @@ try {
   if (Number(testTotal.replaceAll(".","")) < 1100) throw new Error(`Unexpected held-out test size: ${testTotal}`);
   const matrix2 = await page.locator("#test-confusion tbody tr").count();
   if (matrix2 !== 3) throw new Error("Missing 3x3 final test confusion matrix");
+  // Real MiniLM + ONNX smoke test: small fixture, still trains in Chromium.
+  // This checks the CDN, worker protocol and encoder tensor dimensions.
+  const semantic = await page.evaluate(() => new Promise((resolve,reject) => {
+    const worker = new Worker("./src/semantic-worker.js", {type:"module"});
+    const timeout = setTimeout(() => {worker.terminate();reject(new Error("MiniLM worker timed out"));},180000);
+    const finish = (error,result) => {
+      clearTimeout(timeout);
+      worker.terminate();
+      error ? reject(error) : resolve(result);
+    };
+    worker.onerror = (event) => finish(new Error(event.message || "MiniLM worker error"));
+    worker.onmessage = ({data}) => {
+      if(data.type==="error")finish(new Error(data.message));
+      if(data.type==="result")finish(null,data.result);
+    };
+    worker.postMessage({
+      id:1,type:"train",target:"russia",
+      train:[
+        {text:"Condemn the violent invasion",label:"AGAINST"},
+        {text:"I reject this invasion",label:"AGAINST"},
+        {text:"Oppose the military attack",label:"AGAINST"},
+        {text:"I support this action",label:"FAVOR"},
+        {text:"I endorse this action",label:"FAVOR"},
+        {text:"I am in favor of the action",label:"FAVOR"},
+        {text:"It is sunny today",label:"NONE"},
+        {text:"The weather is good",label:"NONE"},
+        {text:"The event begins at noon",label:"NONE"},
+      ],
+      val:["I reject the military attack","I support this decision","The weather today"],
+    });
+  }));
+  if(semantic.dimension!==384 || semantic.predictions.length!==3 ||
+      semantic.predictions.some(label=>!["AGAINST","FAVOR","NONE"].includes(label))) {
+    throw new Error("Real MiniLM worker did not produce valid embeddings/predictions");
+  }
+  console.log("BROWSER_SEMANTIC_SMOKE_SUCCESS",semantic.predictions);
   await fs.mkdir("build",{recursive:true});
   await page.screenshot({path:"build/ruw-step3-desktop.png",fullPage:true});
   await page.setViewportSize({width:390,height:844});
   await page.screenshot({path:"build/ruw-step3-mobile.png",fullPage:true});
-  console.log("BROWSER_SMOKE_SUCCESS",JSON.stringify({ridgeValidationScore:score,testTotal,samples,matrixRows,matrix2,errors}));
+  console.log("BROWSER_SMOKE_SUCCESS",JSON.stringify({baselineValidationScore:score,testTotal,samples,matrixRows,matrix2,errors}));
   if (errors.length) throw new Error(`Unexpected browser console errors: ${errors.join(" | ").slice(0,700)}`);
 } finally {
   await browser.close();

@@ -88,6 +88,7 @@
 .feature-panel h3 { font-size: 1.14rem; }
 .feature-panel p { color: #5d766c; font-size: .82rem; margin: 0; line-height: 1.65; }
 .features-grid { display: grid; gap: 12px; grid-template-columns: repeat(3,minmax(0,1fr)); }
+.features-grid > p { grid-column: 1 / -1; }
 .feature-group { min-width: 0; }
 .feature-group h4 { font-size: .79rem; margin: 0 0 10px; color: #3d6759; }
 .term-tags { display: flex; flex-wrap: wrap; gap: 6px; }

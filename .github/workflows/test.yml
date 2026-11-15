@@ -29,6 +29,8 @@ jobs:
           node --check src/step2.js
           node --check src/ruw-data.js
           node --check src/text-classifier.js
+          node --check src/embedding-classifier.js
+          node --check src/semantic-worker.js
           node --check src/step3.js
           node --check src/ruw-ridge.js
           node --check scripts/verify-ruw-ridge.mjs

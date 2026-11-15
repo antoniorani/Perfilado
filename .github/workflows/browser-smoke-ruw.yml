@@ -2,13 +2,25 @@ name: Browser smoke test RUW
 
 on:
   push:
-    branches: [feat/paso3-ruw-textos, feat/ruw-better-classifier]
+    branches: [main]
     paths:
       - textos.html
       - src/step3.js
+      - src/semantic-worker.js
+      - src/embedding-classifier.js
+      - src/text-classifier.js
       - src/ruw-ridge.js
       - data/ruw-joint-ridge-v1.json
       - assets/textos.css
+      - scripts/browser-smoke.mjs
+      - .github/workflows/browser-smoke-ruw.yml
+  pull_request:
+    paths:
+      - textos.html
+      - src/step3.js
+      - src/semantic-worker.js
+      - src/embedding-classifier.js
+      - src/text-classifier.js
       - scripts/browser-smoke.mjs
       - .github/workflows/browser-smoke-ruw.yml
   workflow_dispatch:

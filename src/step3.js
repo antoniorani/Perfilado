@@ -1,9 +1,9 @@
 import { loadRUW, LABELS, LABEL_NAMES, TARGETS, labelCounts, normalizedText } from "./ruw-data.js";
 import {
-  MODEL_NAMES, buildVectorizer, trainClassifier, evaluateClassifier, baselineLabel,
+  MODEL_NAMES, buildVectorizer, trainClassifier, evaluateClassifier, evaluatePredictions, baselineLabel,
 } from "./text-classifier.js";
 import { setupAnswers } from "./answers.js";
-import { loadRidgeModel } from "./ruw-ridge.js";
+
 
 const $ = (selector) => document.querySelector(selector);
 const number = new Intl.NumberFormat("es-ES");
@@ -38,6 +38,36 @@ let explorePage=1;
 let reviewRows=[];
 let reviewPage=1;
 let testWasViewed=false;
+let configurationVersion=0;
+let semanticWorker=null;
+let semanticRequestId=0;
+const semanticRequests=new Map();
+
+function runSemantic(type, payload, onProgress=()=>{}) {
+  if(!semanticWorker) {
+    semanticWorker=new Worker(new URL("./semantic-worker.js", import.meta.url),{type:"module"});
+    semanticWorker.addEventListener("message",({data})=>{
+      const request=semanticRequests.get(data.id);
+      if(!request)return;
+      if(data.type==="progress"){request.onProgress(data.message);return;}
+      semanticRequests.delete(data.id);
+      if(data.type==="error")request.reject(new Error(data.message));
+      else if(data.type==="result")request.resolve(data.result);
+      else request.reject(new Error("Respuesta desconocida del trabajador"));
+    });
+    semanticWorker.addEventListener("error",(event)=>{
+      for(const request of semanticRequests.values())request.reject(new Error(event.message||"No se pudo cargar el motor de embeddings"));
+      semanticRequests.clear();
+      semanticWorker.terminate();
+      semanticWorker=null;
+    });
+  }
+  const id=++semanticRequestId;
+  return new Promise((resolve,reject)=>{
+    semanticRequests.set(id,{resolve,reject,onProgress});
+    semanticWorker.postMessage({id,type,...payload});
+  });
+}
 
 function element(tag, className, content) {
   const node=document.createElement(tag);
@@ -188,6 +218,11 @@ function classMetrics(mount,stats) {
 }
 
 function featureTerms() {
+  if(model.name==="semantic"){
+    $("#feature-terms").replaceChildren(element("p","",
+      "MiniLM transforma cada publicación en 384 componentes semánticos. La cabeza logística aprende pesos sobre esos componentes; no dispone de una lista fiable de palabras que expliquen una predicción."));
+    return;
+  }
   const fragment=document.createDocumentFragment();
   for(const label of LABELS){
     const group=element("div","feature-group");
@@ -244,18 +279,19 @@ function showValidation() {
 }
 
 function modelChanged() {
+  configurationVersion++;
   model=null;
   validation=null;
   controls.results.hidden=true;
   controls.testSection.hidden=true;
   controls.testResults.hidden=true;
-  const advanced=controls.model.value==="joint-ridge";
+  const semantic=controls.model.value==="semantic";
   controls.alphaField.hidden=controls.model.value!=="nb";
-  for(const input of [controls.ngrams,controls.vocab]) input.disabled=advanced;
-  controls.train.textContent=advanced?"Cargar y validar modelo →":"Entrenar y validar →";
-  controls.modelExplanation.textContent=advanced
-    ? "Ridge conjunto: modelo real entrenado previamente con RUW (4.095 textos). Predice una de nueve combinaciones de postura y utiliza palabras, trigramas y fragmentos de caracteres. Su configuración está fijada para reproducir los resultados; no se reentrena aquí."
-    : "Modelo sencillo: el vocabulario TF-IDF y el clasificador se ajustan de verdad en tu navegador con los textos de entrenamiento. Puedes cambiar la representación y comparar resultados.";
+  for(const input of [controls.ngrams,controls.vocab]) input.disabled=semantic;
+  controls.train.textContent="Entrenar y validar →";
+  controls.modelExplanation.textContent=semantic
+    ? "Embeddings semánticos: MiniLM (encoder ya preentrenado) convierte las publicaciones en vectores de 384 dimensiones mediante ONNX en este navegador. Después se entrena aquí, desde cero, un clasificador supervisado con RUW. La primera descarga y el cálculo de miles de embeddings pueden tardar; el corpus y los vectores permanecen en memoria, sin enviarse a una API de inferencia."
+    : "Modelo léxico: tanto el vocabulario TF-IDF como el clasificador se ajustan en este navegador con la partición de entrenamiento de RUW. Puedes cambiar la representación y comparar resultados.";
   controls.trainStatus.textContent="Configuración modificada";
   controls.trainDescription.textContent=testWasViewed
     ? "El conjunto de prueba ya se ha consultado. Un nuevo ajuste a partir de él puede sesgar las conclusiones."
@@ -265,69 +301,116 @@ function modelChanged() {
 async function train() {
   if(!corpus)return;
   controls.train.disabled=true;
-  const advanced=controls.model.value==="joint-ridge";
-  controls.trainStatus.textContent=advanced
-    ? "Cargando los parámetros reales del modelo conjunto…"
-    : "Entrenando el clasificador con publicaciones reales…";
-  controls.trainDescription.textContent=advanced
-    ? "Este Ridge fue entrenado previamente con los datos originales de RUW. El navegador lo aplicará sin enviar textos a otro servidor."
-    : "El vocabulario y el modelo se calculan en tu navegador. No se envían textos al servidor.";
+  const version=configurationVersion;
+  const chosenModel=controls.model.value;
+  const target=controls.target.value;
+  controls.trainStatus.textContent=chosenModel==="semantic"
+    ? "Calculando embeddings y entrenando en el navegador…"
+    : "Entrenando el clasificador TF-IDF en el navegador…";
+  controls.trainDescription.textContent="No se envían publicaciones a servicios de inferencia. La representación y los pesos se calculan localmente.";
   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
   try {
-    selectedTarget=controls.target.value;
-    if(advanced) {
-      model=await loadRidgeModel(selectedTarget);
+    let nextModel,nextValidation;
+    if(chosenModel==="semantic") {
+      const outcome=await runSemantic("train",{
+        target,
+        train:corpus.train.map(row=>({text:row.text,label:row[target]})),
+        val:corpus.val.map(row=>row.text),
+      },message=>{if(version===configurationVersion)controls.trainDescription.textContent=message;});
+      nextModel={name:"semantic",target,vectorizer:{size:outcome.dimension}};
+      nextValidation=evaluatePredictions(corpus.val,target,outcome.predictions);
     } else {
       const vectorizer=buildVectorizer(corpus.train,
         {ngrams:Number(controls.ngrams.value),maxFeatures:Number(controls.vocab.value)});
-      model=trainClassifier(corpus.train,selectedTarget,controls.model.value,vectorizer,
+      nextModel=trainClassifier(corpus.train,target,chosenModel,vectorizer,
         {alpha:Number(controls.alpha.value)});
+      nextValidation=evaluateClassifier(nextModel,corpus.val,target);
     }
-    validation=evaluateClassifier(model,corpus.val,selectedTarget);
-    controls.trainStatus.textContent=advanced
-      ? "Modelo conjunto Ridge cargado y evaluado":"Modelo entrenado: "+MODEL_NAMES[model.name];
+    if(version!==configurationVersion)return;
+    selectedTarget=target;
+    model=nextModel;
+    validation=nextValidation;
+    controls.trainStatus.textContent="Modelo entrenado: "+MODEL_NAMES[model.name];
     controls.trainDescription.textContent=
-      `${number.format(corpus.train.length)} textos de entrenamiento y ${number.format(corpus.val.length)} de validación. ${number.format(model.vectorizer.size)} características. F1 macro en validación: ${percent(validation.macroF1)}.` +
-      (advanced?" Este Ridge se entrenó previamente con el conjunto de entrenamiento, no en el navegador.":"") +
+      number.format(corpus.train.length)+" textos de entrenamiento y "+number.format(corpus.val.length)+
+      " de validación. "+number.format(model.vectorizer.size)+" características. F1 macro en validación: "+
+      percent(validation.macroF1)+"." +
       (testWasViewed ? " Aviso: la prueba final ya fue consultada; no la utilices para ajustar parámetros." : "");
     showValidation();
     controls.results.scrollIntoView({behavior:"smooth",block:"start"});
   } catch(error) {
+    if(version!==configurationVersion)return;
     console.error("Error de entrenamiento RUW:",error);
     controls.trainStatus.textContent="No se pudo entrenar el clasificador";
-    controls.trainDescription.textContent=error.message;
+    controls.trainDescription.textContent=error.message + (chosenModel==="semantic"
+      ? ". La primera carga del encoder requiere acceso a cdn.jsdelivr.net y huggingface.co; comprueba la conexión y vuelve a intentarlo."
+      : "");
     controls.results.hidden=true;
     controls.testSection.hidden=true;
   } finally {
     controls.train.disabled=false;
   }
 }
-function evaluateFinalTest() {
+async function evaluateFinalTest() {
   if(!model || !corpus)return;
-  const result=evaluateClassifier(model,corpus.test,selectedTarget);
-  testWasViewed=true;
-  $("#test-accuracy").textContent=percent(result.accuracy);
-  $("#test-macro").textContent=percent(result.macroF1);
-  $("#test-correct").textContent=number.format(result.correct);
-  $("#test-total").textContent=number.format(result.total);
-  classConfusion($("#test-confusion"),result);
-  classMetrics($("#test-classes"),result);
-  controls.testResults.hidden=false;
+  const version=configurationVersion;
   controls.testButton.disabled=true;
-  $("#test-warning").textContent=
-    `Resultados de prueba para ${TARGETS[selectedTarget]}, usando ${MODEL_NAMES[model.name]}. Consulta cerrada para esta configuración. Estos ${number.format(result.total)} textos no se emplearon para entrenar o validar el clasificador. Cualquier elección posterior basada en esta puntuación introduciría sesgo.`;
+  const warning=$("#test-warning");
+  try{
+    const result=model.name==="semantic"
+      ? evaluatePredictions(corpus.test,selectedTarget,
+        (await runSemantic("test",{target:selectedTarget,texts:corpus.test.map(row=>row.text)},
+          message=>{if(version===configurationVersion){
+            controls.trainStatus.textContent="Evaluando el conjunto reservado…";
+            controls.trainDescription.textContent=message;
+          }})).predictions)
+      : evaluateClassifier(model,corpus.test,selectedTarget);
+    if(version!==configurationVersion)return;
+    testWasViewed=true;
+    $("#test-accuracy").textContent=percent(result.accuracy);
+    $("#test-macro").textContent=percent(result.macroF1);
+    $("#test-correct").textContent=number.format(result.correct);
+    $("#test-total").textContent=number.format(result.total);
+    classConfusion($("#test-confusion"),result);
+    classMetrics($("#test-classes"),result);
+    controls.testResults.hidden=false;
+    controls.trainStatus.textContent="Evaluación reservada completada";
+    warning.textContent=
+      "Resultados de prueba para "+TARGETS[selectedTarget]+", usando "+MODEL_NAMES[model.name]+
+      ". Estos "+number.format(result.total)+" textos no se emplearon para entrenar o validar."+
+      " Cualquier elección posterior basada en esta puntuación introduciría sesgo.";
+  } catch(error) {
+    console.error("Error de prueba reservada:",error);
+    controls.trainStatus.textContent="No se pudo evaluar la prueba reservada";
+    controls.trainDescription.textContent=error.message;
+    if(version===configurationVersion)controls.testButton.disabled=false;
+  }
 }
-function predictManual() {
-  if(!model) return;
+async function predictManual() {
+  if(!model)return;
   const text=controls.manual.value.trim();
-  if(!text) {
+  if(!text){
     controls.manualResult.textContent="Escribe una frase antes de clasificar.";
     return;
   }
-  const result=model.predictText(text);
-  controls.manualResult.textContent=
-    `Predicción para ${TARGETS[selectedTarget]}: ${LABEL_NAMES[result.label]}. `+
-    `Términos conocidos por el modelo: ${result.knownTerms}. Es una clasificación de este texto, no una conclusión sobre la persona que lo escribió.`;
+  const version=configurationVersion;
+  controls.manualButton.disabled=true;
+  controls.manualResult.textContent="Calculando la predicción localmente…";
+  try {
+    const result=model.name==="semantic"
+      ? await runSemantic("manual",{target:selectedTarget,text})
+      : model.predictText(text);
+    if(version!==configurationVersion)return;
+    controls.manualResult.textContent=
+      "Predicción para "+TARGETS[selectedTarget]+": "+LABEL_NAMES[result.label]+". "+
+      (model.name==="semantic"?"Basada en un embedding semántico de 384 dimensiones. ":
+        "Términos conocidos por el modelo: "+result.knownTerms+". ")+
+      "Es una clasificación del texto, no una conclusión sobre la persona que lo escribió.";
+  } catch(error) {
+    if(version===configurationVersion)controls.manualResult.textContent=error.message;
+  } finally {
+    controls.manualButton.disabled=false;
+  }
 }
 
 async function init() {
@@ -357,7 +440,7 @@ async function init() {
     controls.status.classList.add("text-status-success");
     controls.loadTitle.textContent="Corpus RUW cargado correctamente";
     controls.loadDescription.textContent=
-      "6.000 publicaciones originales, con etiquetas de Rusia y Ucrania. La búsqueda y el entrenamiento funcionan ahora de forma local.";
+      "6.000 publicaciones originales, con etiquetas de Rusia y Ucrania. El entrenamiento se ejecuta en el navegador; el modelo semántico descarga primero un encoder público.";
     controls.trainStatus.textContent="Datos preparados para entrenar";
     controls.trainDescription.textContent="Elige el objetivo y los parámetros del modelo; después pulsa «Entrenar y validar».";
     updateExploreFilter();

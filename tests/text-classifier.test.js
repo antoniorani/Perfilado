@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { tokenize, buildVectorizer, trainClassifier, evaluateClassifier, baselineLabel } from "../src/text-classifier.js";
+import { tokenize, buildVectorizer, trainClassifier, evaluateClassifier, evaluatePredictions, baselineLabel } from "../src/text-classifier.js";
 
 const classes=["AGAINST","FAVOR","NONE"];
 const samples={
@@ -54,4 +54,13 @@ test("majority baseline, alternate target and input validation",()=>{
   assert.ok(classes.includes(model.predictText("invasion condemn").label));
   assert.throws(()=>trainClassifier(train,"russia","invented",v),/desconocido/);
   assert.throws(()=>buildVectorizer(train,{maxFeatures:0}),RangeError);
+});
+
+test("semantic worker predictions use the exact RUW held-out split and shared metrics",()=>{
+  const result=evaluatePredictions(val,"russia",["AGAINST","FAVOR","NONE"]);
+  assert.equal(result.accuracy,1);
+  assert.equal(result.macroF1,1);
+  assert.equal(result.total,3);
+  assert.throws(()=>evaluatePredictions(val,"russia",["AGAINST"]),/incompatibles/);
+  assert.throws(()=>evaluatePredictions(val,"russia",["AGAINST","MALFORMED","NONE"]),/incompatibles/);
 });
