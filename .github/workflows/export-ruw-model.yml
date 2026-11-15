@@ -34,6 +34,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/ruw-joint-ridge-v1.json
           git diff --cached --quiet || git commit -m "data: reproducible RUW joint Ridge learned weights"
-          git fetch origin feat/ruw-better-classifier
-          git rebase origin/feat/ruw-better-classifier
-          git push origin HEAD:feat/ruw-better-classifier
+          for attempt in 1 2 3 4 5 6 7 8; do
+            git fetch origin feat/ruw-better-classifier
+            git rebase origin/feat/ruw-better-classifier
+            if git push origin HEAD:feat/ruw-better-classifier; then
+              echo "Model committed after attempt $attempt"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Unable to push model after retries" >&2
+          exit 1
