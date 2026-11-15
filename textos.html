@@ -81,7 +81,7 @@
     </section>
 
     <section class="lab-section" id="text-laboratory" aria-labelledby="text-lab-title">
-      <div class="section-title-row"><div><p class="section-label">03.C / ENTRENAR UN MODELO REAL</p><h2 id="text-lab-title">De palabras a predicciones.</h2></div><p class="section-aside">A diferencia de los vectores faciales preentrenados, aquí construimos un vector <strong>TF-IDF</strong> a partir del entrenamiento. Es una representación de palabras, no una comprensión de su significado.</p></div>
+      <div class="section-title-row"><div><p class="section-label">03.C / ENTRENAR UN MODELO REAL</p><h2 id="text-lab-title">De palabras a predicciones.</h2></div><p class="section-aside">Probamos un <strong>modelo conjunto de nueve posturas posibles</strong>, entrenado previamente con RUW, y lo comparamos con dos modelos sencillos que sí se entrenan en el navegador. Todos utilizan vectores TF-IDF, no embeddings semánticos neuronales.</p></div>
       <div class="text-process-grid">
         <div><span>01</span><strong>Vectorizar</strong><small>Convertir los textos a vectores dispersos TF-IDF</small></div>
         <div><span>02</span><strong>Aprender</strong><small>Ajustar un clasificador con 3 categorías</small></div>
@@ -90,12 +90,12 @@
       <div class="text-lab-panel">
         <div class="text-lab-fields">
           <label class="field"><span>Objetivo</span><select id="target-select"><option value="russia">Postura hacia Rusia</option><option value="ukraine">Postura hacia Ucrania</option></select></label>
-          <label class="field"><span>Clasificador</span><select id="model-select"><option value="nb">Naive Bayes multinomial</option><option value="centroid">Prototipos por coseno</option></select></label>
+          <label class="field"><span>Clasificador</span><select id="model-select"><option value="joint-ridge" selected>Ridge conjunto · preentrenado</option><option value="nb">Naive Bayes multinomial</option><option value="centroid">Prototipos por coseno</option></select></label>
           <label class="field"><span>Representación de texto</span><select id="ngram-select"><option value="1">Palabras individuales</option><option value="2">Palabras + pares consecutivos</option></select></label>
           <label class="field"><span>Máximo de términos</span><select id="vocab-select"><option value="1000">1.000</option><option value="2500" selected>2.500</option><option value="5000">5.000</option></select></label>
           <label class="field" id="alpha-field"><span>Suavizado de Naive Bayes</span><select id="alpha-select"><option value="0.1">0,1</option><option value="1" selected>1,0</option><option value="3">3,0</option></select></label>
         </div>
-        <div class="text-lab-action"><p>Los modelos se ajustan realmente con los textos del entrenamiento. La prueba final se reserva hasta que estés conforme con la validación.</p><button id="train-model" class="button button-primary" type="button" disabled>Entrenar y validar <span aria-hidden="true">↗</span></button></div>
+        <div class="text-lab-action"><p id="model-explanation">El modelo conjunto Ridge se entrenó previamente con los textos originales de RUW y considera las nueve combinaciones de postura. No se vuelve a entrenar en el navegador: aquí evaluamos sus predicciones reales. Los otros modelos se entrenan localmente.</p><button id="train-model" class="button button-primary" type="button" disabled>Cargar y validar modelo <span aria-hidden="true">↗</span></button></div>
       </div>
       <div class="text-status" id="train-feedback" role="status" aria-live="polite"><strong id="train-status">Esperando los datos RUW…</strong><p id="train-description">Después de cargar el corpus, podrás entrenar el primer modelo.</p></div>
       <div id="validation-results" class="text-results" hidden>
