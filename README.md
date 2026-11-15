@@ -7,7 +7,7 @@ Laboratorio docente de inteligencia artificial, identificación facial y protecc
 - **Introducción:** encargo del equipo técnico y recorrido de la práctica, presentado al final.
 - **Paso 1:** una imagen por identidad, nombre, código de perfil y atributos sintéticos. Exploración con búsqueda, filtros, gráficos y preguntas de reflexión.
 - **Paso 2:** 5.749 referencias calculadas con detección y alineación facial, y 100 fotos nuevas procesadas en el navegador para buscar top-1/top-5 y ajustar el umbral.
-- **Paso 3:** clasificación real de publicaciones RUW con dos objetivos (Rusia/Ucrania), TF-IDF, Naive Bayes o centroides, validación y matriz de confusión.
+- **Paso 3:** clasificación real de RUW con dos objetivos (Rusia/Ucrania), dos modelos entrenados en navegador y **Ridge conjunto preentrenado** con nueve combinaciones de postura, validación, prueba y matriz de confusión.
 - **Paso 4:** evaluación conjunta pendiente de desarrollar.
 
 ## Datos
@@ -51,6 +51,10 @@ textos.html                Paso 3: clasificación de publicaciones
 assets/textos.css          Diseño responsive del laboratorio NLP
 src/ruw-data.js            Lectura de RUW, limpieza y divisiones
 src/text-classifier.js     Vectores TF-IDF y modelos supervisados
+src/ruw-ridge.js           Inferencia JS del Ridge conjunto preentrenado
+data/ruw-joint-ridge-v1.json Modelo aprendido, sin publicaciones de RUW
+scripts/export-ruw-joint-model.py Entrenamiento reproducible con sklearn
+scripts/verify-ruw-ridge.mjs Paridad de predicciones JS/sklearn
 src/step3.js               Interfaz y evaluación de dos objetivos
 tests/ruw-data.test.js     Integridad del corpus y anonimización parcial
 tests/text-classifier.test.js Pruebas de modelos y confusión
@@ -172,7 +176,7 @@ Las coincidencias textuales se excluyen con prioridad **prueba → validación �
 La aplicación **no usa resultados inventados ni una red neuronal ficticia**:
 
 1. Construye un **vector TF-IDF disperso** de palabras (o palabras y pares) con el conjunto de entrenamiento. Es una representación léxica y **no** un embedding semántico neuronal tipo BERT.
-2. Entrena en el navegador dos clasificadores alternativos: **Naive Bayes multinomial** sobre TF-IDF o **clasificador de centroides por similitud coseno**.
+2. Permite entrenar en el navegador dos clasificadores alternativos: **Naive Bayes multinomial** sobre TF-IDF o **clasificador de centroides por similitud coseno**. Ofrece además un **Ridge conjunto de nueve clases**, entrenado previamente con scikit-learn sobre los 4.095 textos de entrenamiento y exportado como parámetros para inferencia local en JavaScript (no se presenta falsamente como un entrenamiento en vivo).
 3. Ajusta objetivo (Rusia/Ucrania), representación, tamaño de vocabulario y suavizado (Naive Bayes).
 4. Muestra exactitud, **F1 macro**, matriz de confusión, métricas por clase, términos del modelo y errores del conjunto de **validación**.
 5. Tras elegir configuración, desbloquea una evaluación separada del **conjunto de prueba reservado**, con su matriz de confusión. Se advierte que utilizar resultados de prueba para volver a ajustar parámetros introduce sesgo.
@@ -186,6 +190,14 @@ En la auditoría con el corpus original, vocabulario de 2.500 términos y unigra
 | Rusia | Centroides por coseno | 50,3 % | 48,8 % |
 | Ucrania | Naive Bayes | 53,6 % | 47,2 % |
 | Ucrania | Centroides por coseno | 52,3 % | 51,5 % |
+| Rusia | **Ridge conjunto preentrenado** | **56,8 %** | **53,9 %** |
+| Ucrania | **Ridge conjunto preentrenado** | **55,6 %** | **53,2 %** |
+
+El modelo Ridge conjunto considera las combinaciones `AGAINST/FAVOR/NONE` respecto a ambos objetivos en lugar de predecir dos etiquetas de forma aislada. Utiliza TF-IDF de palabras hasta trigramas y de caracteres dentro de palabra (`char_wb`), con regularización Ridge (`alpha=1`). Fue seleccionado **solo sobre los 599 textos de validación**, por lo que las cifras mostradas no son resultados de una prueba final independiente. El alumno puede reservar los 1.187 textos de prueba para evaluarlo después.
+
+El artefacto `data/ruw-joint-ridge-v1.json` (~2,4 MB) contiene **únicamente vocabulario, IDF, pesos cuantizados e información de validación**, nunca las publicaciones originales. La generación es reproducible mediante `node scripts/benchmark-ruw-data.mjs` y `python3 scripts/export-ruw-joint-model.py` (requiere scikit-learn). La verificación `node scripts/verify-ruw-ridge.mjs` compara el modelo de scikit-learn con JavaScript en los mismos 599 textos: coincidencia en **597/599 predicciones conjuntas**, y exactitudes equivalentes para ambos objetivos tras cuantizar los pesos. El modelo NO es una inferencia fiable de las opiniones de una persona.
+
+Se compararon 70 combinaciones de modelos estadísticos y representaciones de palabras y caracteres, además de modelos de embeddings semánticos preentrenados **MiniLM** y **BGE-small**, sin mejora de F1 macro sobre la mejor opción léxica en este corpus. Para el modelo conjunto, los mejores valores F1 macro encontrados fueron **53,9 % en Rusia** y **53,2 % en Ucrania**; no conviene presentar los porcentajes superiores publicados en otros estudios como si fuesen los de este experimento.
 
 Estos modelos son deliberadamente manejables para un taller en el navegador. No replican los algoritmos avanzados ni las cifras del artículo RUW; ofrecen una **línea de base reproducible**. La exactitud puede parecer superior aun cuando algunas clases tengan una sensibilidad baja: por eso incluimos F1 macro y matriz de confusión.
 
@@ -199,4 +211,4 @@ https://antoniorani.github.io/Perfilado/
 
 Las rutas relativas funcionan bajo el subdirectorio `/Perfilado/`.
 
-**Uso exclusivamente docente.** La app no opera un sistema de vigilancia y no ejecuta aún modelos de procesamiento del lenguaje. La etapa conjunta sobre opiniones políticas deberá construirse con identidades totalmente ficticias.
+**Uso exclusivamente docente.** La aplicación contiene modelos reales de NLP y reconocimiento facial, pero no es un sistema de vigilancia ni está validada para tomar decisiones sobre personas. Las publicaciones RUW no se asocian a identidades reales de LFW; la evaluación conjunta de riesgos se planteará con entidades ficticias.
