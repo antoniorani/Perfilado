@@ -26,6 +26,7 @@ jobs:
           node --check src/face-pipeline.js
           node --check src/gallery-format.js
           node --check src/step1.js
+          node --check scripts/browser-smoke-step1.mjs
           node --check src/step2.js
           node --check src/ruw-data.js
           node --check src/text-classifier.js
