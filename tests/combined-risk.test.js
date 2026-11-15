@@ -2,35 +2,34 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { combinedRisk } from "../src/combined-risk.js";
 
-test("illustrative cascade applies the independence assumption only to its product", () => {
-  const stats = combinedRisk(80, 70, 53);
-  assert.ok(Math.abs(stats.simultaneous - 0.2968) < 1e-12);
-  assert.ok(Math.abs(stats.atLeastOneFailure - 0.7032) < 1e-12);
-  assert.ok(Math.abs(stats.lowerBound - 0.03) < 1e-12);
-  assert.equal(stats.upperBound, 0.53);
+test("two-stage scenario uses the independence assumption explicitly", () => {
+  const result = combinedRisk(80, 53);
+  assert.ok(Math.abs(result.simultaneous - 0.424) < 1e-12);
+  assert.ok(Math.abs(result.atLeastOneFailure - 0.576) < 1e-12);
+  assert.ok(Math.abs(result.lowerBound - 0.33) < 1e-12);
+  assert.ok(Math.abs(result.upperBound - 0.53) < 1e-12);
 });
 
-test("simultaneous correct results cannot exceed the least accurate stage", () => {
-  for (const values of [[33, 56, 87], [100, 100, 99], [0, 77, 90], [10, 20, 30]]) {
-    const result = combinedRisk(...values);
-    assert.ok(result.simultaneous <= result.upperBound + 1e-12);
-    assert.ok(result.simultaneous >= result.lowerBound - 1e-12);
-    assert.ok(result.atLeastOneFailure >= 0 && result.atLeastOneFailure <= 1);
+test("bounds bracket the intersection regardless of marginals", () => {
+  for (const [face, text] of [[33, 56], [100, 99], [0, 77], [10, 20], [100, 100]]) {
+    const {simultaneous,lowerBound,upperBound} = combinedRisk(face, text);
+    assert.ok(simultaneous <= upperBound + 1e-12);
+    assert.ok(simultaneous >= lowerBound - 1e-12);
   }
 });
 
-test("boundary cases and percentages are explicit", () => {
-  assert.deepEqual(combinedRisk(100, 100, 100), {
+test("boundary cases are unambiguous", () => {
+  assert.deepEqual(combinedRisk(100, 100), {
     simultaneous: 1, atLeastOneFailure: 0, lowerBound: 1, upperBound: 1,
   });
-  assert.deepEqual(combinedRisk(0, 100, 100), {
+  assert.deepEqual(combinedRisk(0, 100), {
     simultaneous: 0, atLeastOneFailure: 1, lowerBound: 0, upperBound: 0,
   });
 });
 
-test("rejects missing, text, non-finite, and out-of-range rates", () => {
-  for (const values of [[null, 80, 90], ["80", 60, 70], [80, undefined, 10],
-    [NaN, 80, 90], [Infinity, 80, 90], [-1, 20, 30], [30, 101, 40]]) {
+test("rejects invalid marginal rates", () => {
+  for (const values of [[null, 80], ["80", 60], [80, undefined], [NaN, 80],
+    [Infinity, 80], [-1, 20], [30, 101]]) {
     assert.throws(() => combinedRisk(...values), RangeError);
   }
 });

@@ -215,34 +215,24 @@ Los clasificadores son deliberadamente manejables para un taller en el navegador
 
 Las pruebas automatizadas ejecutan `npm test`; para auditar la fuente RUW con conexión a internet, ejecuta `node scripts/verify-ruw.mjs`. La integración real del navegador se valida mediante Chromium en `scripts/browser-smoke.mjs`. Los datos no se envían a una API propia de Perfilado.
 
-## Paso 4: evaluación conjunta y recomendación
+## Paso 4: encargo final de clasificación política (simulación)
 
-La cuarta y última fase (aproximadamente **20 minutos**) se abre en [`evaluacion.html`](evaluacion.html). Parte del encargo final del responsable: considerar un sistema que pudiera identificar personas a partir de fotografías y atribuirles afinidades políticas mediante la clasificación de publicaciones. La misión del alumno es **evaluar su viabilidad técnica y jurídica**, no implantarlo.
+La fase final, [`evaluacion.html`](evaluacion.html), dura aproximadamente **20 minutos**. La dirección del proyecto comunica que, **en la ficción del ejercicio**, las publicaciones estudiadas en el paso 3 están asignadas a los perfiles iniciales. Solicita desarrollar una aplicación móvil que permita hacer una fotografía e identificar a alguien, recuperar el comentario atribuido a su perfil ficticio y clasificar la postura que expresa respecto a Rusia y Ucrania.
 
-### Una cadena sin vínculos personales reales
+**No se construye un sistema real de perfilado político:** la asignación entre personas y textos es una premisa imaginaria; LFW y RUW **no poseen correspondencias reales**. La actividad no activa la cámara, no enlaza datos reales de distintas personas, no identifica opiniones políticas de individuos ni genera un dataset de perfiles políticos. Se evalúa la propuesta técnica y jurídica antes de cualquier eventual despliegue.
 
-1. **Identificación facial:** utilizar los resultados y rechazos por umbral estudiados en el paso 2, sin trasladar automáticamente su accuracy a otro contexto.
-2. **Autoría/vinculación:** comprobar si una publicación podría asociarse legítimamente a alguien; **LFW y RUW no contienen ese enlace**.
-3. **Clasificación de texto:** utilizar los resultados del paso 3 distinguiendo una postura expresada en un mensaje de las opiniones de quien lo escribió.
-4. **Decisión sobre una persona:** revisar cómo los errores de cada etapa, la falta de vinculación y las inferencias no justificadas podrían acumularse y causar daños.
+### Errores de dos sistemas
 
-No se vinculan ni se descargan nombres/fotografías de LFW con tuits de RUW en este paso. Los tres casos F-101, F-202 y F-303 son imaginarios y no poseen fotografías, nombres ni tuits identificables.
+La interfaz muestra una cadena conceptual sencilla: fotografía móvil → perfil ficticio con comentario asignado → clasificación textual con `AGAINST`, `FAVOR` o `NONE` para cada objetivo. Solo se comparan **dos tasas** del trabajo anterior:
 
-### Calculadora de errores hipotéticos
+- Identificación facial del paso 2.
+- Clasificación del texto del paso 3.
 
-El alumnado puede introducir tres tasas de acierto entre 0 y 100 %: identificación facial, vinculación de autoría y clasificación de texto. Por defecto aparecen **80 %, 70 % y 53 %**, valores **ilustrativos** que deben reemplazarse por resultados observados en los ejercicios cuando sea posible. Como no existe un dataset conjunto, **la tasa de vinculación siempre es supuesta**. La calculadora muestra:
+El simulador calcula el producto de ambas tasas y su complemento, **únicamente como ejemplo bajo independencia**, y ofrece en un detalle opcional los límites matemáticos sin esa suposición: `max(0, p_facial + p_textual - 1)` hasta `min(p_facial, p_textual)`. Los valores iniciales de **80 % y 53 %** son ilustrativos. Dado que los datasets y las poblaciones son diferentes, el resultado no mide la exactitud de una aplicación real. Tampoco permite afirmar que una persona sostenga la opinión expresada por una publicación.
 
-- El producto de las tasas, únicamente como proporción de tres aciertos simultáneos **suponiendo independencia**.
-- El complemento de ese producto, como frecuencia hipotética con al menos un fallo.
-- Los límites de Fréchet sin asumir independencia: `máx(0, p1 + p2 + p3 - 2)` hasta `mín(p1, p2, p3)`.
+### Preguntas y garantías
 
-**No son métricas empíricas del sistema conjunto ni miden la certeza de una opinión personal.** Los resultados reales de los pasos 2 y 3 provienen de datasets, poblaciones y tareas diferentes. El simulador no dispone de etiquetas conjuntas; no genera puntuaciones reales ni ejecuta reconocimiento sobre personas.
-
-### Valoración jurídica y preguntas
-
-Se plantean **tres marcos de análisis** y enlaces normativos: RGPD / LO 3/2018 en el ámbito civil, Directiva (UE) 2016/680 / LO 7/2021 para tratamientos policiales en su ámbito, y el régimen específico según finalidad y competencia para actividades exclusivamente militares o de defensa. También se señala el alcance y las limitaciones del Reglamento europeo de IA. No se presenta una declaración automática de licitud o ilicitud: debe analizarse cada supuesto concreto.
-
-Las preguntas **20 a 23** son las previstas en la propuesta docente: diferencia entre identificación, autoría e inferencia; acumulación de errores; protección de datos y normativa por finalidad; e **informe final razonado** para el responsable. Las respuestas se guardan y exportan con el mismo módulo `src/answers.js` usado en los pasos 1–3. No hay backend, llamadas a inferencia ni archivos de opinión política vinculados a identidades reales.
+El alumnado evalúa la acumulación de errores, las posibles consecuencias de usar los resultados contra personas, los marcos normativos según la finalidad (civil, policial, exclusivamente militar) y las salvaguardas necesarias. El material jurídico queda en un apartado desplegable para dar prioridad al relato y al ejercicio. El informe final responde a las preguntas **20–23**, se guarda únicamente en el navegador y se exporta con `src/answers.js` igual que las fases anteriores.
 
 ## GitHub Pages
 

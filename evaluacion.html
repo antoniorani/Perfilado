@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Paso 4 de Perfilado: evaluación conjunta de errores, derechos fundamentales y viabilidad legal de un sistema ficticio de identificación política.">
+  <meta name="description" content="Paso 4 de Perfilado: evaluar los riesgos de combinar reconocimiento facial y clasificación de publicaciones en un encargo ficticio.">
   <meta name="theme-color" content="#f5f6f2">
   <title>Paso 4 · Evaluación conjunta | Perfilado</title>
   <link rel="stylesheet" href="./assets/styles.css">
@@ -15,6 +15,7 @@
     <a class="brand" href="./index.html" aria-label="Perfilado, volver al inicio"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span><span>PERFILADO<span class="brand-dot">.</span></span></a>
     <div class="header-side"><span class="header-kicker">LABORATORIO DOCENTE</span><span class="header-separator"></span><span>PASO 04 DE 04</span></div>
   </div></header>
+
   <main id="contenido"><div class="container">
     <nav class="step-nav" aria-label="Progreso de la práctica">
       <a class="step-nav-item" href="./index.html"><span>00</span> Introducción</a>
@@ -25,163 +26,99 @@
     </nav>
 
     <section class="data-intro data-intro-simple" aria-labelledby="final-title">
-      <p class="section-label">PASO 04 / EVALUACIÓN CONJUNTA · 20 MINUTOS</p>
-      <h1 id="final-title">Una predicción.<br><em>Muchas consecuencias.</em></h1>
-      <p class="data-intro-lede">El responsable del proyecto comunica finalmente su verdadera intención: <strong>identificar personas por su rostro y determinar sus posibles afinidades políticas a partir de publicaciones</strong> para apoyar decisiones sobre ellas en una zona de conflicto.</p>
-      <p class="data-intro-lede">Ahora vuestro trabajo no es mejorar un modelo, sino <strong>valorar la viabilidad técnica y jurídica de combinar los sistemas</strong> y redactar una recomendación final.</p>
+      <p class="section-label">PASO 04 / EL ENCARGO FINAL · 20 MINUTOS</p>
+      <h1 id="final-title">Ahora sabemos<br><em>para qué era todo.</em></h1>
+      <p class="data-intro-lede">Llega una nueva comunicación de la dirección: <strong>los comentarios que hemos analizado en el paso 3 están asignados a los perfiles del dataset inicial</strong>. Hasta ahora habíamos trabajado con imágenes, identidades y publicaciones por separado. Nos dicen que quieren utilizarlo todo junto.</p>
+      <p class="data-intro-lede">La orden es desarrollar una aplicación para el móvil: <strong>hacer una fotografía a alguien y obtener una clasificación de su postura a favor, en contra o sin postura clara respecto a Rusia y Ucrania</strong>, a partir del comentario asignado a su perfil.</p>
+      <p class="data-intro-lede">Antes de aceptar el encargo, tenemos que decidir si el resultado sería fiable y si el tratamiento de estos datos estaría justificado.</p>
     </section>
 
-    <section class="final-brief" aria-labelledby="brief-title">
-      <div>
-        <p class="section-label section-label-light">EL ENCARGO FINAL / EXPEDIENTE 04</p>
-        <h2 id="brief-title">¿Podemos convertir<br><em>dos resultados en una decisión?</em></h2>
-      </div>
-      <div>
-        <p>En el paso 2 habéis comprobado que un rostro puede atribuirse a una identidad equivocada. En el paso 3 habéis observado que un clasificador puede interpretar mal la postura expresada en una publicación.</p>
-        <p><strong>Falta, además, demostrar que esa publicación pertenece a la persona identificada.</strong> El corpus LFW y los textos RUW no proporcionan tal vínculo.</p>
-        <p class="final-brief-note">Los ejemplos de esta fase son <strong>100 % ficticios</strong>. No vinculamos imágenes de LFW con tuits de RUW ni atribuimos opiniones políticas a personas reales.</p>
-      </div>
+    <section class="final-context" aria-label="Límite de la simulación">
+      <strong>Una condición importante de esta práctica</strong>
+      <p>La asociación entre perfiles y publicaciones forma parte de la <strong>historia ficticia</strong>: no existe un vínculo real entre las personas fotografiadas en LFW y los autores de RUW. No vamos a crear ese vínculo, captar fotografías nuevas ni atribuir opiniones políticas a personas reales.</p>
     </section>
 
-    <section class="final-section" aria-labelledby="chain-title">
+    <section class="final-section" aria-labelledby="sequence-title">
       <div class="section-title-row">
-        <div><p class="section-label">04.A / RECONSTRUIR LA CADENA</p><h2 id="chain-title">Cuatro afirmaciones distintas.</h2></div>
-        <p class="section-aside">Una coincidencia facial no demuestra quién escribió un texto. Una etiqueta del texto tampoco demuestra qué piensa su autor.</p>
+        <div><p class="section-label">04.A / EL SISTEMA QUE NOS PIDEN</p><h2 id="sequence-title">De una fotografía a una etiqueta.</h2></div>
       </div>
-      <div class="final-chain" aria-label="Etapas diferentes de la inferencia propuesta">
-        <article><span>01 / BIOMETRÍA</span><h3>¿Quién aparece?</h3><p>Un modelo propone una identidad a partir de una fotografía. Puede acertar, errar o rechazar la coincidencia.</p></article>
-        <article><span>02 / VINCULACIÓN</span><h3>¿De quién es el mensaje?</h3><p>Se necesita evidencia independiente para asociar una publicación con una persona. Esa evidencia no existe entre LFW y RUW.</p></article>
-        <article><span>03 / NLP</span><h3>¿Qué expresa el texto?</h3><p>El clasificador intenta reconocer una postura respecto a un objetivo. Puede fallar ante ironía, negaciones o ambigüedad.</p></article>
-        <article class="final-chain-limit"><span>04 / LÍMITE</span><h3>¿Qué piensa la persona?</h3><p>Ni una publicación bien clasificada demuestra necesariamente una opinión privada, estable o atribuible a su supuesto autor.</p></article>
+      <div class="final-sequence">
+        <div><span>01 / MÓVIL</span><strong>Fotografía</strong><p>El sistema intenta identificar a la persona mediante el modelo facial del paso 2.</p></div>
+        <div><span>02 / PERFIL FICTICIO</span><strong>Comentario asignado</strong><p>En el supuesto de la actividad, cada perfil ya tiene una publicación asociada.</p></div>
+        <div><span>03 / MODELO NLP</span><strong>Clasificación del texto</strong><p>El modelo del paso 3 predice una postura hacia Rusia y otra hacia Ucrania: a favor, en contra o ninguna clara.</p></div>
       </div>
+      <p class="final-small-note">El resultado sería una <strong>etiqueta sobre el texto asignado</strong>, no una prueba de cuáles son las opiniones personales de quien aparece en la fotografía.</p>
     </section>
 
     <section class="final-section" id="simulador" aria-labelledby="sim-title">
       <div class="section-title-row">
-        <div><p class="section-label">04.B / EXPERIMENTO HIPOTÉTICO</p><h2 id="sim-title">¿Qué ocurre cuando sumamos errores?</h2></div>
-        <p class="section-aside">Introducid vuestros resultados de los pasos 2 y 3 para explorar un ejemplo matemático. No estamos midiendo un sistema conjunto real.</p>
+        <div><p class="section-label">04.B / DOS MODELOS, DOS OPORTUNIDADES DE ERROR</p><h2 id="sim-title">¿Qué ocurre al combinarlos?</h2></div>
+        <p class="section-aside">Prueba los porcentajes que obtuviste en los pasos 2 y 3. El cálculo es ilustrativo, no una evaluación de esta aplicación.</p>
       </div>
       <div class="final-simulator">
-        <div class="final-simulator-intro">
-          <h3>Ajusta los tres supuestos</h3>
-          <p>Los porcentajes iniciales son <strong>ilustrativos, no mediciones del sistema conjunto</strong>. Cambia la primera y la tercera tasa por los valores que hayas observado. La tasa de vinculación es necesariamente supuesta: no existe un dataset conjunto LFW–RUW con el que medirla.</p>
-        </div>
         <div class="final-sliders">
           <div class="final-slider">
             <div class="final-slider-label"><label for="face-rate">Identificación facial correcta</label><output id="face-value" for="face-rate">80 %</output></div>
             <input id="face-rate" type="range" min="0" max="100" step="1" value="80">
-            <p>Usa una medida que tenga sentido para el umbral y las identificaciones aceptadas del paso 2.</p>
+            <p>Paso 2 · Usa una tasa coherente con el umbral y las identificaciones aceptadas.</p>
           </div>
           <div class="final-slider">
-            <div class="final-slider-label"><label for="link-rate">Publicación correctamente vinculada</label><output id="link-value" for="link-rate">70 %</output></div>
-            <input id="link-rate" type="range" min="0" max="100" step="1" value="70">
-            <p>Supuesto ficticio. En los datasets reales de la práctica no hay vínculos verificables entre personas y publicaciones.</p>
-          </div>
-          <div class="final-slider">
-            <div class="final-slider-label"><label for="text-rate">Clasificación de texto correcta</label><output id="text-value" for="text-rate">53 %</output></div>
+            <div class="final-slider-label"><label for="text-rate">Clasificación del texto correcta</label><output id="text-value" for="text-rate">53 %</output></div>
             <input id="text-rate" type="range" min="0" max="100" step="1" value="53">
-            <p>Usa la exactitud de validación del objetivo elegido en el paso 3; no es la fiabilidad de una opinión personal.</p>
+            <p>Paso 3 · Usa la exactitud de validación del objetivo que hayas elegido.</p>
           </div>
-          <button class="button button-secondary button-small" id="reset-rates" type="button">Restablecer supuestos</button>
+          <button class="button button-secondary button-small" type="button" id="reset-rates">Restablecer valores de ejemplo</button>
         </div>
         <div class="final-simulation-results" aria-live="polite" aria-atomic="true">
           <div class="final-result-main">
-            <span>Coincidencia de los tres aciertos</span>
-            <strong id="joint-result">29,7 %</strong>
-            <small>Producto de las tres tasas <strong>si fueran independientes</strong></small>
-            <div class="final-result-track" aria-hidden="true"><span id="joint-bar" role="progressbar" aria-label="Coincidencia hipotética de aciertos" aria-valuemin="0" aria-valuemax="100" aria-valuenow="29.7"></span></div>
+            <span>Ambas etapas correctas</span>
+            <strong id="joint-result">42,4 %</strong>
+            <small>Ejemplo matemático <strong>si los errores fueran independientes</strong>.</small>
+            <div class="final-result-track" aria-hidden="true"><span id="joint-bar"></span></div>
           </div>
           <div class="final-result-secondary">
-            <div><span>Al menos un fallo en la cadena</span><strong id="failure-result">70,3 %</strong><small>Complemento del producto, solo en este escenario supuesto</small></div>
-            <div><span>Rango sin suponer independencia</span><strong id="bounds-result">3 %–53 %</strong><small>Límites matemáticos posibles con esas tres tasas marginales</small></div>
+            <div><span>Al menos una etapa falla</span><strong id="failure-result">57,6 %</strong></div>
           </div>
         </div>
       </div>
-      <p class="final-caveat"><strong>Interpretación obligatoria:</strong> estos cálculos son un experimento sobre fallos sucesivos, <strong>no</strong> una exactitud medida del sistema combinado ni una probabilidad de conocer opiniones políticas. La independencia puede no cumplirse; los datasets proceden de poblaciones y tareas diferentes y las tasas de los ejercicios no se trasladan automáticamente a una zona de conflicto.</p>
+      <details class="final-method">
+        <summary>¿Qué significa realmente este cálculo?</summary>
+        <p>Multiplicar las dos tasas supone que sus aciertos son independientes. Sin esa suposición, los aciertos conjuntos podrían situarse entre <strong id="bounds-result">33 %–53 %</strong>, incluso tomando las tasas como comparables. Además, LFW y RUW representan tareas y poblaciones diferentes: <strong>no hemos medido la exactitud de un sistema conjunto</strong>.</p>
+        <p>Y aun si ambas etapas fueran correctas, clasificar una publicación no demuestra que su autor mantenga una opinión política personal, estable o inequívoca.</p>
+      </details>
     </section>
 
-    <section class="final-section" aria-labelledby="examples-title">
-      <div class="section-title-row">
-        <div><p class="section-label">04.C / REVISAR TRES CASOS INVENTADOS</p><h2 id="examples-title">Cuando el error afecta a alguien.</h2></div>
-        <p class="section-aside">Los códigos, personas y situaciones siguientes son enteramente ficticios. No contienen fotografías ni publicaciones de los datasets reales.</p>
+    <section class="final-section" aria-labelledby="risk-title">
+      <div class="section-title-row"><div><p class="section-label">04.C / CONSECUENCIAS</p><h2 id="risk-title">Cuando una etiqueta se convierte en una decisión.</h2></div></div>
+      <div class="final-impact">
+        <p>Imaginad que una foto se confunde con la de otra persona: se le asignaría la clasificación de un comentario ajeno. O que un mensaje irónico se interpreta al revés: incluso una identificación correcta conduciría a una conclusión equivocada.</p>
+        <p><strong>En un contexto de conflicto, esos errores podrían tener consecuencias graves</strong> si el sistema se utiliza para vigilar, restringir derechos o tomar decisiones sobre individuos.</p>
       </div>
-      <div class="final-cases">
-        <article class="final-case">
-          <span class="final-case-code">CASO FICTICIO / F-101</span>
-          <h3>La identidad equivocada</h3>
-          <p>El sistema asocia una fotografía con el perfil incorrecto. Aunque una publicación fuese interpretada correctamente, su resultado terminaría vinculado a quien no corresponde.</p>
-          <strong>Riesgo: imputación falsa, investigación indebida o trato discriminatorio.</strong>
-          <details><summary>¿Qué comprobación faltó?</summary><p>Verificar la identidad de forma independiente y permitir el rechazo cuando la similitud no ofrece evidencia suficiente.</p></details>
-        </article>
-        <article class="final-case">
-          <span class="final-case-code">CASO FICTICIO / F-202</span>
-          <h3>La ironía no detectada</h3>
-          <p>Un comentario imaginario usa sarcasmo para criticar una acción militar, pero un clasificador lo marca como apoyo. Su clasificación se interpreta además como una opinión personal duradera.</p>
-          <strong>Riesgo: inferencia sensible equivocada que puede condicionar una decisión.</strong>
-          <details><summary>¿Qué comprobación faltó?</summary><p>Revisar el contexto del mensaje y distinguir la postura expresada en un texto de las creencias de quien lo escribió.</p></details>
-        </article>
-        <article class="final-case">
-          <span class="final-case-code">CASO FICTICIO / F-303</span>
-          <h3>El vínculo que nunca se probó</h3>
-          <p>La identificación facial y la etiqueta de una publicación podrían ser correctas por separado, pero nada demuestra que el mensaje pertenezca a esa persona.</p>
-          <strong>Riesgo: construir un perfil sobre una asociación sin fundamento.</strong>
-          <details><summary>¿Qué comprobación faltó?</summary><p>Una base legítima y evidencias sólidas de autoría. En esta práctica no disponemos de ellas y no debemos fabricarlas.</p></details>
-        </article>
-      </div>
-    </section>
-
-    <section class="final-section" aria-labelledby="law-title">
-      <div class="section-title-row">
-        <div><p class="section-label">04.D / PROTECCIÓN DE DATOS Y DERECHOS</p><h2 id="law-title">¿Quién utiliza el sistema y para qué?</h2></div>
-        <p class="section-aside">La respuesta jurídica cambia según la finalidad, el responsable, el territorio y las operaciones concretas. No basta con decir «es IA» o «son datos públicos».</p>
-      </div>
-      <div class="final-law-intro"><p>La identificación biométrica y los datos que revelan opiniones políticas plantean riesgos especialmente elevados. Antes de recomendar el proyecto, comprobad <strong>base jurídica, necesidad, proporcionalidad, limitación de la finalidad, minimización, seguridad, supervisión humana y evaluación de impacto</strong>.</p></div>
-      <div class="final-law-grid">
-        <details class="final-law-item">
-          <summary><span>01 / FINALIDAD CIVIL</span> RGPD y normativa española</summary>
-          <p>Revisad los artículos 5, 6, 9 y 35 del RGPD, la Ley Orgánica 3/2018 y, según el diseño y alcance, el Reglamento europeo de IA. El artículo 9 protege especialmente opiniones políticas y datos biométricos utilizados para identificar de manera unívoca.</p>
-          <p>La evaluación de impacto puede ser obligatoria en tratamientos de alto riesgo; debe analizarse antes de desplegar el sistema. El uso de publicaciones accesibles en Internet no elimina estas obligaciones.</p>
-          <p><a href="https://eur-lex.europa.eu/eli/reg/2016/679/oj" target="_blank" rel="noopener noreferrer">RGPD (EUR-Lex)</a> · <a href="https://www.boe.es/eli/es/lo/2018/12/05/3" target="_blank" rel="noopener noreferrer">LO 3/2018 (BOE)</a></p>
-        </details>
-        <details class="final-law-item">
-          <summary><span>02 / FINALIDAD POLICIAL</span> Normas específicas y límites</summary>
-          <p>Para tratamientos realizados por autoridades competentes con fines de prevención, investigación o enjuiciamiento de infracciones penales, estudiad la Directiva (UE) 2016/680 y, en España, la Ley Orgánica 7/2021. No toda actuación de un organismo policial encaja automáticamente en ese régimen.</p>
-          <p>También deben comprobarse las restricciones, prohibiciones y posibles excepciones del Reglamento de IA para el caso concreto; no presumáis que un uso policial queda libre de requisitos.</p>
-          <p><a href="https://www.boe.es/eli/es/lo/2021/05/26/7" target="_blank" rel="noopener noreferrer">LO 7/2021 (BOE)</a> · <a href="https://eur-lex.europa.eu/eli/dir/2016/680/oj" target="_blank" rel="noopener noreferrer">Directiva 2016/680</a></p>
-        </details>
-        <details class="final-law-item">
-          <summary><span>03 / FINALIDAD MILITAR</span> Ámbito y garantías</summary>
-          <p>Determinadas actividades exclusivamente militares, de defensa o seguridad nacional quedan fuera del ámbito de algunas normas de la UE, pero ello <strong>no implica ausencia de límites jurídicos</strong>. Estudiad la normativa nacional aplicable, los derechos humanos y, cuando proceda, el derecho internacional humanitario.</p>
-          <p>Hay que analizar quién actúa, con qué finalidad y bajo qué competencia; no es correcto deducir la legalidad del sistema solo porque se utilice en un conflicto.</p>
-          <p><a href="https://eur-lex.europa.eu/eli/reg/2024/1689/oj" target="_blank" rel="noopener noreferrer">Reglamento (UE) 2024/1689</a> · <a href="https://www.icrc.org/es/derecho-y-politicas/derecho-internacional-humanitario" target="_blank" rel="noopener noreferrer">Derecho internacional humanitario (CICR)</a></p>
-        </details>
-      </div>
-      <p class="final-legal-note">Atención: el Reglamento de IA contempla restricciones y prohibiciones sobre determinados usos biométricos, incluida la categorización biométrica para inferir atributos sensibles. <strong>No se debe confundir esa categoría jurídica con cualquier análisis de texto vinculado a una identidad</strong>; hay que estudiar el diseño real y su finalidad. Estas referencias son orientativas para el ejercicio, no un dictamen legal.</p>
+      <details class="final-law">
+        <summary>Normativa y garantías que debemos evaluar</summary>
+        <p><strong>Uso civil:</strong> comprobad los principios y bases de legitimación del RGPD (artículos 5 y 6), las categorías especiales de datos del artículo 9, y la evaluación de impacto del artículo 35, junto con la Ley Orgánica 3/2018.</p>
+        <p><strong>Uso policial:</strong> si se trata de autoridades competentes y finalidades cubiertas, examinad la Directiva (UE) 2016/680 y la Ley Orgánica 7/2021. La aplicación del Reglamento europeo de IA exige analizar el caso concreto.</p>
+        <p><strong>Uso exclusivamente militar:</strong> pueden existir exclusiones de determinados regímenes europeos; no suponen ausencia de límites. Se deben estudiar también el derecho nacional, los derechos humanos y, cuando proceda, el derecho internacional humanitario.</p>
+        <p>Documentación: <a href="https://eur-lex.europa.eu/eli/reg/2016/679/oj" target="_blank" rel="noopener noreferrer">RGPD</a>, <a href="https://eur-lex.europa.eu/eli/reg/2024/1689/oj" target="_blank" rel="noopener noreferrer">Reglamento de IA</a>, <a href="https://www.boe.es/eli/es/lo/2021/05/26/7" target="_blank" rel="noopener noreferrer">LO 7/2021</a> y <a href="https://www.boe.es/eli/es/lo/2018/12/05/3" target="_blank" rel="noopener noreferrer">LO 3/2018</a>.</p>
+      </details>
     </section>
 
     <section class="question-section" id="preguntas">
       <div class="question-head">
-        <div><p class="section-label section-label-light">04.E / VALORACIÓN PARA EL RESPONSABLE</p><h2>La decisión<br><em>es vuestra.</em></h2><p>Utilizad los resultados de los pasos anteriores, los ejemplos ficticios y los marcos normativos para justificar una recomendación final.</p></div>
+        <div><p class="section-label section-label-light">04.D / INFORME FINAL</p><h2>¿Aceptaríais<br><em>el encargo?</em></h2><p>Responded a partir de los resultados reales de los pasos 2 y 3 y del escenario ficticio planteado.</p></div>
         <span class="question-count">20—23</span>
       </div>
       <div class="question-list">
-        <div class="question-item"><label for="q20"><span>20</span> Si combinamos el reconocimiento facial con el análisis de publicaciones, ¿podemos afirmar que conocemos la opinión política de una persona? ¿Qué diferencias existen entre identificar un rostro, encontrar una publicación y atribuir una opinión a alguien?</label><textarea id="q20" rows="4" placeholder="Distingue las etapas y la evidencia que faltaría…"></textarea></div>
-        <div class="question-item"><label for="q21"><span>21</span> Imaginad que el reconocimiento facial identifica erróneamente a una persona y que el sistema de NLP también interpreta incorrectamente un comentario. ¿Qué consecuencias podría tener la acumulación de estos errores? ¿Qué grado de confianza podríamos atribuir al resultado conjunto?</label><textarea id="q21" rows="4" placeholder="Utiliza las métricas de los pasos 2 y 3, con sus límites…"></textarea></div>
-        <div class="question-item"><label for="q22"><span>22 <b>PROTECCIÓN DE DATOS</b></span> ¿Qué riesgos presenta este nuevo tratamiento? ¿Sería necesario realizar una evaluación de impacto? ¿Qué normativa resultaría aplicable dependiendo de que el sistema se utilizase con fines civiles, policiales o exclusivamente militares? ¿Qué límites jurídicos existirían para tratar datos biométricos e inferir opiniones políticas?</label><textarea id="q22" rows="5" placeholder="Diferencia los tres escenarios jurídicos y las garantías…"></textarea></div>
-        <div class="question-item"><label for="q23"><span>23</span> El responsable del proyecto os solicita un informe final. ¿Recomendaríais implantar el sistema propuesto? Justificad vuestra respuesta teniendo en cuenta los resultados técnicos, las consecuencias de los errores y los requisitos legales. ¿Existe alguna alternativa menos intrusiva que permita satisfacer parte de la finalidad planteada?</label><textarea id="q23" rows="6" placeholder="Redacta aquí tu recomendación razonada para el responsable…"></textarea></div>
+        <div class="question-item"><label for="q20"><span>20</span> Si el sistema identifica una cara y clasifica el comentario asignado a su perfil, ¿podemos afirmar que conocemos la opinión política de esa persona? ¿Qué diferencia hay entre identificar un rostro, clasificar un texto y atribuir una opinión personal?</label><textarea id="q20" rows="4" placeholder="Distingue qué puede concluirse en cada etapa…"></textarea></div>
+        <div class="question-item"><label for="q21"><span>21</span> Imaginad que el reconocimiento facial identifica erróneamente a una persona o que el modelo NLP interpreta mal su comentario. ¿Qué consecuencias podrían tener estos errores al combinar ambos sistemas? ¿Qué confianza merece la clasificación final?</label><textarea id="q21" rows="4" placeholder="Apóyate en las métricas y los errores de los dos modelos…"></textarea></div>
+        <div class="question-item"><label for="q22"><span>22 <b>PROTECCIÓN DE DATOS</b></span> ¿Qué riesgos presenta este tratamiento? ¿Sería necesaria una evaluación de impacto? ¿Qué normativa se aplicaría según el uso civil, policial o exclusivamente militar, y qué límites existirían para los datos biométricos y las opiniones políticas?</label><textarea id="q22" rows="5" placeholder="Explica las garantías y los marcos jurídicos…"></textarea></div>
+        <div class="question-item"><label for="q23"><span>23</span> El responsable os pide un informe final. ¿Recomendaríais implantar la aplicación que clasificaría a personas a partir de fotografías tomadas con un móvil? Justificadlo por sus resultados técnicos, los riesgos de error y los requisitos legales. ¿Hay alternativas menos intrusivas?</label><textarea id="q23" rows="6" placeholder="Redacta vuestra recomendación final…"></textarea></div>
       </div>
-      <div class="question-actions"><p id="save-state" role="status">Las respuestas se guardan solo en este navegador.</p><button class="button button-primary" type="button" id="export-answers">Exportar informe y respuestas <span aria-hidden="true">↓</span></button></div>
+      <div class="question-actions"><p id="save-state" role="status">Las respuestas se guardan solo en este navegador.</p><button class="button button-primary" type="button" id="export-answers">Exportar respuestas <span aria-hidden="true">↓</span></button></div>
     </section>
-
-    <section class="final-conclusion" aria-labelledby="closing-title">
-      <p class="section-label">FIN DE LA PRÁCTICA</p>
-      <h2 id="closing-title">¿Que algo pueda hacerse significa que deba hacerse?</h2>
-      <p>Hemos construido y evaluado modelos de IA con datos reales, y hemos examinado errores, sesgos, finalidad y derechos. Una tecnología puede ofrecer resultados medibles sin justificar que esos resultados se utilicen para decidir sobre personas.</p>
-      <a class="text-link" href="./index.html">Volver al inicio de la práctica →</a>
-    </section>
-    <div class="step-bottom"><a class="text-link" href="./textos.html">← Volver al paso 3</a><span>Paso 04 / 04 · Evaluación conjunta finalizada</span></div>
+    <div class="step-bottom"><a class="text-link" href="./textos.html">← Volver al paso 3</a><a class="text-link" href="./index.html">Volver al inicio →</a></div>
   </div></main>
-  <footer class="site-footer site-footer-light"><div class="container footer-inner"><span>PERFILADO · Autor: Antonio Ramos Nieto</span><span>Simulación exclusivamente docente · Sin atribuciones políticas a personas reales</span></div></footer>
+  <footer class="site-footer site-footer-light"><div class="container footer-inner"><span>PERFILADO · Autor: Antonio Ramos Nieto</span><span>Simulación docente · Ninguna opinión política atribuida a personas reales</span></div></footer>
   <script type="module" src="./src/step4.js"></script>
 </body>
 </html>
