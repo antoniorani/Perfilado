@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
     paths:
+      - biometria.html
+      - assets/biometrics.css
+      - src/step2.js
+      - src/face-engine.js
+      - scripts/browser-smoke-step2.mjs
       - index.html
       - datos.html
       - src/step1.js
@@ -27,6 +32,11 @@ on:
       - .github/workflows/browser-smoke-ruw.yml
   pull_request:
     paths:
+      - biometria.html
+      - assets/biometrics.css
+      - src/step2.js
+      - src/face-engine.js
+      - scripts/browser-smoke-step2.mjs
       - index.html
       - datos.html
       - src/step1.js
@@ -67,6 +77,8 @@ jobs:
         run: python3 -m http.server 8000 > /tmp/perfilado-http.log 2>&1 &
       - name: Exercise intro and dataset explorer in Chromium
         run: node scripts/browser-smoke-step1.mjs
+      - name: Exercise face recognition interface with deterministic embeddings in Chromium
+        run: node scripts/browser-smoke-step2.mjs
       - name: Exercise RUW with real data in Chromium
         run: node scripts/browser-smoke.mjs
       - name: Exercise final evaluation with hypothetical inputs in Chromium
@@ -79,4 +91,5 @@ jobs:
             build/ruw-step3-*.png
             build/step4-*.png
             build/step1-*.png
+            build/step2-*.png
           retention-days: 7
