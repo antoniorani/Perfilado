@@ -1,7 +1,7 @@
 """Train a reproducible, public *model* (not posts) with real RUW train labels.
 Selection was performed on DEV; TEST remains untouched by this artifact builder.
 """
-import json, hashlib
+import json, hashlib, base64
 from pathlib import Path
 import numpy as np
 from scipy.sparse import hstack
@@ -34,6 +34,10 @@ for target,i in [("russia",0),("ukraine",1)]:
     correct=sum(a==b for a,b in zip(true,guess)),
     support=len(true))
 print("MODEL_VALIDATION",json.dumps(targets),flush=True)
+# Class-wise int16 quantization reduces the model size significantly.
+coeff=clf.coef_.astype(np.float32)
+scales=np.max(np.abs(coeff),axis=1)/32760
+quantized=np.rint(coeff/scales[:,None]).astype("<i2")
 model={
  "format":"RUW-joint-ridge-1",
  "revision":"ecb2a4579197c5be03092a1b8fa21ead359809ce",
@@ -46,7 +50,8 @@ model={
   {"analyzer":"char_wb","ngrams":[3,5],"vocabulary":char.get_feature_names_out().tolist(),
    "idf":np.round(char.idf_,7).tolist(),"scale":.5},
  ],
- "coefficients":np.round(clf.coef_.astype(np.float32),7).tolist(),
+ "weightsI16":{"scale":scales.tolist(),"shape":list(quantized.shape),
+   "bytes":base64.b64encode(quantized.tobytes()).decode("ascii")},
  "intercepts":np.round(clf.intercept_.astype(np.float32),7).tolist(),
  "devValidation":targets,
  "devPredictions":list(map(str,pred)),
