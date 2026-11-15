@@ -8,6 +8,7 @@ import { LABELS } from "./ruw-data.js";
 export const MODEL_NAMES = Object.freeze({
   nb: "Naive Bayes multinomial",
   centroid: "Prototipos por similitud coseno",
+  "joint-ridge": "Ridge conjunto preentrenado",
 });
 const LABEL_INDEX = new Map(LABELS.map((name, i) => [name, i]));
 
@@ -72,7 +73,7 @@ function countsFor(rows,target) {
 
 export function trainClassifier(rows, target, modelName, vectorizer, {alpha=1}={}) {
   if(!["russia","ukraine"].includes(target))throw new Error("Objetivo desconocido");
-  if(!Object.hasOwn(MODEL_NAMES,modelName))throw new Error("Clasificador desconocido");
+  if(!["nb","centroid"].includes(modelName))throw new Error("Clasificador de entrenamiento desconocido");
   if(!Number.isFinite(alpha)||alpha<=0||alpha>100)throw new RangeError("Suavizado inválido");
   const n=vectorizer.size,k=LABELS.length;
   const classCounts=countsFor(rows,target);
