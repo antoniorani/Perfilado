@@ -8,7 +8,7 @@ Laboratorio docente de inteligencia artificial, identificación facial y protecc
 - **Paso 1:** una imagen por identidad, nombre, código de perfil y atributos sintéticos. Exploración con búsqueda, filtros, gráficos y preguntas de reflexión.
 - **Paso 2:** 5.749 referencias calculadas con detección y alineación facial, y 100 fotos nuevas procesadas en el navegador para buscar top-1/top-5 y ajustar el umbral.
 - **Paso 3:** clasificación real de RUW con dos objetivos (Rusia/Ucrania), tres clasificadores entrenados **en el navegador**, incluido MiniLM como extractor de embeddings semánticos y una cabeza logística supervisada, con validación, prueba y matriz de confusión.
-- **Paso 4:** evaluación conjunta pendiente de desarrollar.
+- **Paso 4:** evaluación conjunta de los errores de los pasos 2 y 3, inferencias sobre opiniones políticas, escenarios jurídicos civil/policial/militar y valoración final. Todos los casos son ficticios.
 
 ## Datos
 
@@ -48,6 +48,11 @@ data/lfw-identities.json   Índice real LFW
 tests/core.test.js         Pruebas del catálogo
 tests/full-gallery.test.js   Pruebas de búsqueda y umbrales
 textos.html                Paso 3: clasificación de publicaciones
+evaluacion.html            Paso 4: evaluación conjunta e informe final (preguntas 20–23)
+assets/evaluacion.css      Estilos de la fase final
+src/combined-risk.js       Producto hipotético de aciertos y límites sin independencia
+src/step4.js               Simulación local y respuestas reutilizando src/answers.js
+tests/combined-risk.test.js Pruebas de cálculos y extremos
 assets/textos.css          Diseño responsive del laboratorio NLP
 src/ruw-data.js            Lectura de RUW, limpieza y divisiones
 src/text-classifier.js     Vectores TF-IDF, métricas compartidas y modelos léxicos
@@ -209,6 +214,35 @@ Antes de esta actualización se compararon 70 combinaciones de modelos estadíst
 Los clasificadores son deliberadamente manejables para un taller en el navegador, aunque la primera extracción con MiniLM consume más recursos. No replican los algoritmos avanzados ni las cifras del artículo RUW; ofrecen una **línea de base reproducible**. La exactitud puede parecer superior aun cuando algunas clases tengan una sensibilidad baja: por eso incluimos F1 macro y matriz de confusión.
 
 Las pruebas automatizadas ejecutan `npm test`; para auditar la fuente RUW con conexión a internet, ejecuta `node scripts/verify-ruw.mjs`. La integración real del navegador se valida mediante Chromium en `scripts/browser-smoke.mjs`. Los datos no se envían a una API propia de Perfilado.
+
+## Paso 4: evaluación conjunta y recomendación
+
+La cuarta y última fase (aproximadamente **20 minutos**) se abre en [`evaluacion.html`](evaluacion.html). Parte del encargo final del responsable: considerar un sistema que pudiera identificar personas a partir de fotografías y atribuirles afinidades políticas mediante la clasificación de publicaciones. La misión del alumno es **evaluar su viabilidad técnica y jurídica**, no implantarlo.
+
+### Una cadena sin vínculos personales reales
+
+1. **Identificación facial:** utilizar los resultados y rechazos por umbral estudiados en el paso 2, sin trasladar automáticamente su accuracy a otro contexto.
+2. **Autoría/vinculación:** comprobar si una publicación podría asociarse legítimamente a alguien; **LFW y RUW no contienen ese enlace**.
+3. **Clasificación de texto:** utilizar los resultados del paso 3 distinguiendo una postura expresada en un mensaje de las opiniones de quien lo escribió.
+4. **Decisión sobre una persona:** revisar cómo los errores de cada etapa, la falta de vinculación y las inferencias no justificadas podrían acumularse y causar daños.
+
+No se vinculan ni se descargan nombres/fotografías de LFW con tuits de RUW en este paso. Los tres casos F-101, F-202 y F-303 son imaginarios y no poseen fotografías, nombres ni tuits identificables.
+
+### Calculadora de errores hipotéticos
+
+El alumnado puede introducir tres tasas de acierto entre 0 y 100 %: identificación facial, vinculación de autoría y clasificación de texto. Por defecto aparecen **80 %, 70 % y 53 %**, valores **ilustrativos** que deben reemplazarse por resultados observados en los ejercicios cuando sea posible. Como no existe un dataset conjunto, **la tasa de vinculación siempre es supuesta**. La calculadora muestra:
+
+- El producto de las tasas, únicamente como proporción de tres aciertos simultáneos **suponiendo independencia**.
+- El complemento de ese producto, como frecuencia hipotética con al menos un fallo.
+- Los límites de Fréchet sin asumir independencia: `máx(0, p1 + p2 + p3 - 2)` hasta `mín(p1, p2, p3)`.
+
+**No son métricas empíricas del sistema conjunto ni miden la certeza de una opinión personal.** Los resultados reales de los pasos 2 y 3 provienen de datasets, poblaciones y tareas diferentes. El simulador no dispone de etiquetas conjuntas; no genera puntuaciones reales ni ejecuta reconocimiento sobre personas.
+
+### Valoración jurídica y preguntas
+
+Se plantean **tres marcos de análisis** y enlaces normativos: RGPD / LO 3/2018 en el ámbito civil, Directiva (UE) 2016/680 / LO 7/2021 para tratamientos policiales en su ámbito, y el régimen específico según finalidad y competencia para actividades exclusivamente militares o de defensa. También se señala el alcance y las limitaciones del Reglamento europeo de IA. No se presenta una declaración automática de licitud o ilicitud: debe analizarse cada supuesto concreto.
+
+Las preguntas **20 a 23** son las previstas en la propuesta docente: diferencia entre identificación, autoría e inferencia; acumulación de errores; protección de datos y normativa por finalidad; e **informe final razonado** para el responsable. Las respuestas se guardan y exportan con el mismo módulo `src/answers.js` usado en los pasos 1–3. No hay backend, llamadas a inferencia ni archivos de opinión política vinculados a identidades reales.
 
 ## GitHub Pages
 
