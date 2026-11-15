@@ -202,13 +202,15 @@ export function caseCard(result) {
   const card = element("article", `case-card outcome-${result.outcome}`);
   const pictures = element("div", "case-photos");
   const [best, second] = result.candidates;
+  const top1Wrong = best.person.id !== result.person.id;
+  if (!top1Wrong) pictures.classList.add("case-photos-two");
 
   const input = element("figure", "case-photo case-photo-probe");
   input.append(faceImage(result.person, result.imageNumber, "case-image"));
   input.append(element("figcaption", "", "FOTO DE PRUEBA"));
   pictures.append(input);
 
-  for (const [candidate, rank] of [[best, 1], [second, 2]]) {
+  for (const [candidate, rank] of top1Wrong ? [[best, 1], [second, 2]] : [[best, 1]]) {
     if (!candidate) continue;
     const isMatch = candidate.person.id === result.person.id;
     const figure = element("figure", "case-photo");
