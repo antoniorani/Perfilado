@@ -1,5 +1,10 @@
 name: Build joint RUW pretrained model
 on:
+  push:
+    branches: [feat/ruw-better-classifier]
+    paths:
+      - scripts/export-ruw-joint-model.py
+      - .github/workflows/export-ruw-model.yml
   workflow_dispatch:
 permissions:
   contents: write
