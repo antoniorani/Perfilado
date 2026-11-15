@@ -23,7 +23,7 @@ models={
  "LinearSVC_C0.3":lambda: LinearSVC(C=.3,max_iter=3000,dual=False),
  "LinearSVC_C1":lambda: LinearSVC(C=1,max_iter=3000,dual=False),
  "LinearSVC_C3":lambda: LinearSVC(C=3,max_iter=3000,dual=False),
- "Logistic_C1":lambda: LogisticRegression(C=1,max_iter=300,solver="liblinear"),
+ "Logistic_C1":lambda: LogisticRegression(C=1,max_iter=300,solver="lbfgs"),
  "Logistic_C4":lambda: LogisticRegression(C=4,max_iter=300,solver="liblinear"),
  "Ridge_a1":lambda: RidgeClassifier(alpha=1),
  "SGD_log":lambda: SGDClassifier(loss="log_loss",alpha=1e-4,max_iter=1000,random_state=42),
