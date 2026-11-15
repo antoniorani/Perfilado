@@ -1,9 +1,15 @@
-name: Browser smoke test RUW
+name: Browser smoke tests
 
 on:
   push:
     branches: [main]
     paths:
+      - index.html
+      - datos.html
+      - src/step1.js
+      - src/answers.js
+      - assets/styles.css
+      - scripts/browser-smoke-step1.mjs
       - textos.html
       - src/step3.js
       - src/semantic-worker.js
@@ -21,6 +27,12 @@ on:
       - .github/workflows/browser-smoke-ruw.yml
   pull_request:
     paths:
+      - index.html
+      - datos.html
+      - src/step1.js
+      - src/answers.js
+      - assets/styles.css
+      - scripts/browser-smoke-step1.mjs
       - textos.html
       - src/step3.js
       - src/semantic-worker.js
@@ -53,6 +65,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Start static GitHub Pages equivalent
         run: python3 -m http.server 8000 > /tmp/perfilado-http.log 2>&1 &
+      - name: Exercise intro and dataset explorer in Chromium
+        run: node scripts/browser-smoke-step1.mjs
       - name: Exercise RUW with real data in Chromium
         run: node scripts/browser-smoke.mjs
       - name: Exercise final evaluation with hypothetical inputs in Chromium
@@ -64,4 +78,5 @@ jobs:
           path: |
             build/ruw-step3-*.png
             build/step4-*.png
+            build/step1-*.png
           retention-days: 7
