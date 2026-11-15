@@ -1,10 +1,11 @@
 /** Reusable, browser-local student worksheet. No server-side submission. */
-export function setupAnswers({ first, last, step, title, filename }) {
+export function setupAnswers({ first, last, step, title, filename, additionalIds = [] }) {
   const status = document.querySelector("#save-state");
   const exportButton = document.querySelector("#export-answers");
-  for (let number = first; number <= last; number += 1) {
-    const answer = document.getElementById(`q${number}`);
-    const key = `perfilado:step${step}:q${number}`;
+  const ids = [...Array.from({ length: last - first + 1 }, (_, index) => `q${first + index}`), ...additionalIds];
+  for (const id of ids) {
+    const answer = document.getElementById(id);
+    const key = `perfilado:step${step}:${id}`;
     try { answer.value = localStorage.getItem(key) || ""; } catch { /* local storage disabled */ }
     answer.addEventListener("input", () => {
       try {
@@ -16,10 +17,9 @@ export function setupAnswers({ first, last, step, title, filename }) {
     });
   }
   exportButton.addEventListener("click", () => {
-    const rows = Array.from({ length: last - first + 1 }, (_, index) => {
-      const number = index + first;
-      const question = document.querySelector(`label[for="q${number}"]`).textContent.trim();
-      const answer = document.getElementById(`q${number}`).value.trim();
+    const rows = ids.map((id) => {
+      const question = document.querySelector(`label[for="${id}"]`).textContent.trim();
+      const answer = document.getElementById(id).value.trim();
       return `${question}\n\n${answer || "(Sin respuesta)"}`;
     });
     const content = `${title}\n\n${rows.join("\n\n------------------------------------\n\n")}\n`;
