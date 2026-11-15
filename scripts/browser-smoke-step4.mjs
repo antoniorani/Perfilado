@@ -25,17 +25,17 @@ try {
     throw new Error("Incorrect dynamic cascade/bounds: "+joint+" / "+bounds);
   }
 
-  // The student's answers stay in this browser and export through the shared worksheet.
+  // The student's answers stay in this browser without visible export/status controls.
   await page.locator("#q23").fill("Recomendación de prueba: no implantar con esta evidencia.");
   await page.reload({waitUntil:"domcontentloaded"});
   if(!(await page.locator("#q23").inputValue()).includes("no implantar")) {
     throw new Error("Step 4 answer did not persist locally");
   }
-  const download = page.waitForEvent("download");
-  await page.locator("#export-answers").click();
-  const file = await download;
-  if(file.suggestedFilename() !== "perfilado-paso4-respuestas.txt") {
-    throw new Error("Step 4 worksheet download has unexpected name");
+  if (await page.locator("#save-state, #export-answers, .question-actions").count()) {
+    throw new Error("Step 4 should save silently and show no export controls");
+  }
+  if ((await page.locator("label[for='q22']").innerText()).includes("PROTECCIÓN DE DATOS")) {
+    throw new Error("Redundant privacy label remains on the question");
   }
   await fs.mkdir("build",{recursive:true});
   await page.screenshot({path:"build/step4-desktop.png",fullPage:true});
@@ -44,7 +44,7 @@ try {
   const width = await page.evaluate(()=>({content:document.documentElement.scrollWidth,viewport:innerWidth}));
   if(width.content > width.viewport + 2) throw new Error("Horizontal overflow in Step 4 mobile layout: "+JSON.stringify(width));
   if(errors.length)throw new Error("Step 4 page errors: "+errors.join(" | "));
-  console.log("STEP4_BROWSER_SMOKE_SUCCESS",JSON.stringify({stages:3,questions:4,joint,bounds,download:file.suggestedFilename(),mobileWidth:width}));
+  console.log("STEP4_BROWSER_SMOKE_SUCCESS",JSON.stringify({stages:3,questions:4,joint,bounds,silentSave:true,mobileWidth:width}));
 } finally {
   await browser.close();
 }
