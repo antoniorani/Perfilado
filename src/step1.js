@@ -2,6 +2,11 @@ import { createProfiles, filterProfiles, getSummary, referenceImageUrl, ZONES } 
 import { setupAnswers } from "./answers.js";
 
 const PAGE_SIZE = 10;
+const DISTRIBUTIONS = {
+  zone: { title: "Perfiles por zona ficticia", key: "byZone" },
+  age: { title: "Perfiles por tramo de edad ficticia", key: "byAge" },
+  language: { title: "Perfiles por idioma ficticio", key: "byLanguage" },
+};
 const formatter = new Intl.NumberFormat("es-ES");
 const $ = (selector) => document.querySelector(selector);
 const elements = {
@@ -9,7 +14,10 @@ const elements = {
   body: $("#profiles-body"), dataStatus: $("#data-status"),
   tableSummary: $("#table-summary"), counter: $("#page-counter"),
   next: $("#next"), previous: $("#previous"),
-  zoneChart: $("#zone-chart"), ageChart: $("#age-chart"),
+  distributionSelect: $("#distribution-select"),
+  distributionTitle: $("#distribution-title"), distributionChart: $("#distribution-chart"),
+  photoDialog: $("#photo-dialog"), photoClose: $("#photo-close"),
+  photoLarge: $("#photo-large"), photoCaption: $("#photo-caption"), photoError: $("#photo-error"),
 };
 
 let profiles = [];
@@ -32,8 +40,15 @@ function cell(value, className = "") {
 function photo(profile) {
   const holder = document.createElement("div");
   holder.className = "image-cell";
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "photo-zoom";
+  button.setAttribute("aria-label", `Ampliar fotografía de ${profile.name}`);
+  button.dataset.photoUrl = referenceImageUrl(profile);
+  button.dataset.photoName = profile.name;
+
   const img = document.createElement("img");
-  img.src = referenceImageUrl(profile);
+  img.src = button.dataset.photoUrl;
   img.alt = `Fotografía de ${profile.name} en el conjunto LFW`;
   img.className = "photo-thumb";
   img.loading = "lazy";
@@ -47,10 +62,26 @@ function photo(profile) {
     fallback.setAttribute("role", "img");
     fallback.setAttribute("aria-label", "Fotografía no disponible");
     fallback.textContent = "—";
-    img.replaceWith(fallback);
+    button.replaceWith(fallback);
   }, { once: true });
-  holder.append(img);
+  button.append(img);
+  holder.append(button);
   return holder;
+}
+
+function openPhoto(button) {
+  const name = button.dataset.photoName;
+  const large = elements.photoLarge;
+  elements.photoError.hidden = true;
+  large.hidden = false;
+  large.alt = `Fotografía ampliada de ${name} en LFW`;
+  elements.photoCaption.textContent = name;
+  large.onerror = () => {
+    large.hidden = true;
+    elements.photoError.hidden = false;
+  };
+  large.src = button.dataset.photoUrl;
+  elements.photoDialog.showModal();
 }
 
 function renderTable() {
@@ -114,8 +145,16 @@ function renderChart(target, counts) {
   target.replaceChildren(fragment);
 }
 
+function showDistribution(summary) {
+  const setting = DISTRIBUTIONS[elements.distributionSelect.value];
+  if (!setting) return;
+  elements.distributionTitle.textContent = setting.title;
+  elements.distributionChart.setAttribute("aria-label", setting.title);
+  renderChart(elements.distributionChart, summary[setting.key]);
+}
+
 async function main() {
-  setupAnswers({ first: 1, last: 5, step: 1, title: "PERFILADO — PASO 1: EXPLORACIÓN DE DATOS", filename: "perfilado-paso1-respuestas.txt" });
+  setupAnswers({ first: 1, last: 5, additionalIds: ["q5b"], step: 1, title: "PERFILADO — PASO 1: EXPLORACIÓN DE DATOS", filename: "perfilado-paso1-respuestas.txt" });
   for (const zone of ZONES) {
     const option = document.createElement("option");
     option.value = zone;
@@ -131,8 +170,8 @@ async function main() {
     if (summary.profiles !== 5749 || summary.photographs !== 13233) {
       throw new Error("El índice de LFW no supera la verificación de integridad");
     }
-    renderChart(elements.zoneChart, summary.byZone);
-    renderChart(elements.ageChart, summary.byAge);
+    showDistribution(summary);
+    elements.distributionSelect.addEventListener("change", () => showDistribution(summary));
     updateFilters();
     setStatus("");
   } catch (error) {
@@ -142,6 +181,15 @@ async function main() {
     elements.next.disabled = true;
     return;
   }
+
+  elements.body.addEventListener("click", (event) => {
+    const button = event.target.closest(".photo-zoom");
+    if (button) openPhoto(button);
+  });
+  elements.photoClose.addEventListener("click", () => elements.photoDialog.close());
+  elements.photoDialog.addEventListener("click", (event) => {
+    if (event.target === elements.photoDialog) elements.photoDialog.close();
+  });
 
   for (const field of [elements.search, elements.zone, elements.sort]) {
     field.addEventListener(field === elements.search ? "input" : "change", updateFilters);
