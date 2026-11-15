@@ -126,7 +126,7 @@ La galería y el informe están en el artefacto **lfw-aligned-v2-all-5749** de l
 
 **La galería v1 es incompatible:** no uses `lfw-gallery.f32` de los cálculos anteriores. La página `biometria.html` acepta la galería `lfw-gallery-v3.pfg` una vez actualizada; los modelos anteriores no sirven como sustituto. No basta con renombrar el archivo viejo: es necesario regenerarlo con la detección y alineación nuevas.
 
-Para utilizarlo en clase, descarga el artefacto de GitHub Actions, extrae el archivo `.pfg` y selecciónalo en el campo de carga local del paso 2. El navegador lo conserva únicamente en memoria. La web puede cargarlo automáticamente desde `data/lfw-gallery-v2.pfg` **solo si se revisa y autoriza expresamente su difusión pública**.
+La galería `data/lfw-gallery-v3.pfg` está incluida en el repositorio (publicación autorizada expresamente) y el paso 2 la carga de forma automática desde GitHub Pages, sin intervención del alumno. El campo de carga local solo aparece como alternativa si esa descarga falla. El navegador conserva los vectores únicamente en memoria.
 
 **Privacidad:** las plantillas de reconocimiento facial son información biométrica vinculable a identidades reales. Evitamos incorporarlas a la rama pública de GitHub. Los artefactos de Actions tienen una retención limitada, pero también deben tratarse como datos sensibles y gestionarse con las garantías necesarias. No se atribuyen posturas u opiniones políticas a las personas de LFW.
 

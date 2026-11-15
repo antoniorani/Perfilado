@@ -54,8 +54,8 @@
         </div>
         <div class="lab-feedback" id="gallery-feedback" role="status" aria-live="polite">
           <strong id="gallery-status">Comprobando los embeddings de referencia…</strong>
-          <p id="gallery-description">La galería precalculada se obtiene de un archivo binario; no hay que volver a procesar sus 5.749 imágenes.</p>
-          <label class="gallery-import" for="gallery-file">Los vectores son biométricos y deben protegerse. Carga aquí la galería v3; incluye los casos recuperados con métodos alternativos, documentados en el informe:
+          <p id="gallery-description">La galería precalculada se carga automáticamente desde el proyecto; no hay que volver a procesar sus 5.749 imágenes.</p>
+          <label class="gallery-import" id="gallery-import" for="gallery-file" hidden>Si la carga automática falla, puedes seleccionar aquí la galería v3 (lfw-gallery-v3.pfg):
             <input id="gallery-file" type="file" accept=".pfg,application/octet-stream">
           </label>
         </div>

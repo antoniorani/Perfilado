@@ -4,3 +4,5 @@ build/
 # Biometric templates must not enter public Git history by accident.
 data/*.f32
 data/*.pfg
+# Galería docente publicada expresamente para que el paso 2 la cargue sola.
+!data/lfw-gallery-v3.pfg

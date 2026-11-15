@@ -12,6 +12,7 @@ const elements = {
   galleryStatus: $("#gallery-status"),
   galleryDescription: $("#gallery-description"),
   galleryFile: $("#gallery-file"),
+  galleryImport: $("#gallery-import"),
   launch: $("#run-model"),
   modelStatus: $("#model-status"),
   modelDescription: $("#model-description"),
@@ -91,6 +92,7 @@ function activateGallery(buffer, origin) {
   const loaded = readGallery(buffer, allProfiles);
   gallery = loaded.gallery;
   elements.launch.disabled = false;
+  elements.galleryImport.hidden = true;
   galleryFeedback(
     `Galería cargada: ${formatter.format(loaded.gallery.length)} vectores de referencia reales`,
     loaded.missing.length
@@ -105,9 +107,10 @@ async function loadGallery() {
   try {
     const response = await fetch("./data/lfw-gallery-v3.pfg", { cache: "default" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    activateGallery(await response.arrayBuffer(), "galería precomputada");
+    activateGallery(await response.arrayBuffer(), "galería incluida en el proyecto");
   } catch (error) {
     elements.launch.disabled = true;
+    elements.galleryImport.hidden = false;
     galleryFeedback(
       "La galería precalculada no está disponible automáticamente",
       `Puedes seleccionar «lfw-gallery-v3.pfg», que incluye las referencias recuperadas. Las versiones anteriores (.f32 y v2.pfg) no son compatibles. Detalle: ${error.message}.`,
