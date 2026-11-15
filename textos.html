@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Paso 3 de Perfilado: clasificación real de publicaciones RUW, vectores TF-IDF, modelos de aprendizaje automático y protección de datos.">
+  <meta name="description" content="Paso 3 de Perfilado: clasificación RUW con embeddings semánticos MiniLM y entrenamiento supervisado en navegador, sin servidor de inferencia.">
   <meta name="theme-color" content="#f5f6f2">
   <title>Paso 3 · Análisis de textos | Perfilado</title>
   <link rel="stylesheet" href="./assets/styles.css">
@@ -81,21 +81,21 @@
     </section>
 
     <section class="lab-section" id="text-laboratory" aria-labelledby="text-lab-title">
-      <div class="section-title-row"><div><p class="section-label">03.C / ENTRENAR UN MODELO REAL</p><h2 id="text-lab-title">De palabras a predicciones.</h2></div><p class="section-aside">Probamos un <strong>modelo conjunto de nueve posturas posibles</strong>, entrenado previamente con RUW, y lo comparamos con dos modelos sencillos que sí se entrenan en el navegador. Todos utilizan vectores TF-IDF, no embeddings semánticos neuronales.</p></div>
+      <div class="section-title-row"><div><p class="section-label">03.C / ENTRENAR UN MODELO REAL</p><h2 id="text-lab-title">De palabras a predicciones.</h2></div><p class="section-aside">Comparamos <strong>embeddings semánticos MiniLM</strong> con dos representaciones léxicas TF-IDF. <strong>Los tres clasificadores se entrenan al pulsar el botón, dentro de tu navegador</strong>. El encoder MiniLM ya viene preentrenado y se descarga desde Hugging Face; los textos no se envían a un servidor de inferencia.</p></div>
       <div class="text-process-grid">
-        <div><span>01</span><strong>Vectorizar</strong><small>Convertir los textos a vectores dispersos TF-IDF</small></div>
-        <div><span>02</span><strong>Aprender</strong><small>Ajustar un clasificador con 3 categorías</small></div>
+        <div><span>01</span><strong>Vectorizar</strong><small>Generar embeddings semánticos o vectores TF-IDF</small></div>
+        <div><span>02</span><strong>Aprender</strong><small>Entrenar un clasificador supervisado de 3 clases en el navegador</small></div>
         <div><span>03</span><strong>Evaluar</strong><small>Comprobar errores en textos no utilizados para entrenar</small></div>
       </div>
       <div class="text-lab-panel">
         <div class="text-lab-fields">
           <label class="field"><span>Objetivo</span><select id="target-select"><option value="russia">Postura hacia Rusia</option><option value="ukraine">Postura hacia Ucrania</option></select></label>
-          <label class="field"><span>Clasificador</span><select id="model-select"><option value="joint-ridge" selected>Ridge conjunto · preentrenado</option><option value="nb">Naive Bayes multinomial</option><option value="centroid">Prototipos por coseno</option></select></label>
+          <label class="field"><span>Clasificador</span><select id="model-select"><option value="semantic" selected>MiniLM + logística · embeddings</option><option value="nb">Naive Bayes · TF-IDF</option><option value="centroid">Prototipos por coseno · TF-IDF</option></select></label>
           <label class="field"><span>Representación de texto</span><select id="ngram-select"><option value="1">Palabras individuales</option><option value="2">Palabras + pares consecutivos</option></select></label>
           <label class="field"><span>Máximo de términos</span><select id="vocab-select"><option value="1000">1.000</option><option value="2500" selected>2.500</option><option value="5000">5.000</option></select></label>
           <label class="field" id="alpha-field"><span>Suavizado de Naive Bayes</span><select id="alpha-select"><option value="0.1">0,1</option><option value="1" selected>1,0</option><option value="3">3,0</option></select></label>
         </div>
-        <div class="text-lab-action"><p id="model-explanation">El modelo conjunto Ridge se entrenó previamente con los textos originales de RUW y considera las nueve combinaciones de postura. No se vuelve a entrenar en el navegador: aquí evaluamos sus predicciones reales. Los otros modelos se entrenan localmente.</p><button id="train-model" class="button button-primary" type="button" disabled>Cargar y validar modelo <span aria-hidden="true">↗</span></button></div>
+        <div class="text-lab-action"><p id="model-explanation">MiniLM genera embeddings de 384 dimensiones mediante ONNX ejecutado en el navegador; el clasificador se entrena aquí con RUW. La descarga inicial del encoder y el cálculo de miles de vectores pueden tardar. Nada se envía a una API de inferencia.</p><button id="train-model" class="button button-primary" type="button" disabled>Entrenar y validar <span aria-hidden="true">↗</span></button></div>
       </div>
       <div class="text-status" id="train-feedback" role="status" aria-live="polite"><strong id="train-status">Esperando los datos RUW…</strong><p id="train-description">Después de cargar el corpus, podrás entrenar el primer modelo.</p></div>
       <div id="validation-results" class="text-results" hidden>
@@ -104,13 +104,13 @@
           <div><span>Exactitud</span><strong id="metric-accuracy">—</strong></div>
           <div><span>F1 macro</span><strong id="metric-macro">—</strong></div>
           <div><span>Baseline mayoritaria</span><strong id="metric-baseline">—</strong></div>
-          <div><span>Tamaño del vocabulario</span><strong id="metric-vocab">—</strong></div>
+          <div><span>Características (vocabulario o dimensión)</span><strong id="metric-vocab">—</strong></div>
         </div>
         <div class="text-evaluation-grid">
           <div class="matrix-card"><h3>Matriz de confusión</h3><p>Filas: etiqueta real. Columnas: predicción. Los aciertos están en la diagonal.</p><div id="confusion-matrix"></div></div>
           <div class="matrix-card"><h3>Métricas por clase</h3><p>La exactitud global puede ocultar un modelo que falla sistemáticamente en una categoría.</p><div id="class-metrics"></div></div>
         </div>
-        <div class="feature-panel"><div><h3>¿Qué palabras diferencian las clases?</h3><p>Se muestran términos del modelo como una pista parcial: no explican por sí solos el contexto o la intención del mensaje.</p></div><div id="feature-terms" class="features-grid"></div></div>
+        <div class="feature-panel"><div><h3>¿Qué aprende el clasificador?</h3><p>Con TF-IDF se muestran términos destacados. Con embeddings semánticos no es correcto atribuir pesos del vector a palabras concretas.</p></div><div id="feature-terms" class="features-grid"></div></div>
         <div class="review-panel">
           <div class="section-title-row"><div><p class="section-label">EXAMINAR ERRORES</p><h3>Casos de validación</h3></div><label class="field"><span>Mostrar</span><select id="error-filter"><option value="errors">Solo errores</option><option value="all">Todos los resultados</option><option value="correct">Solo aciertos</option></select></label></div>
           <div id="error-examples" class="tweet-samples"></div>
