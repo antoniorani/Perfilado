@@ -28,6 +28,7 @@ jobs:
           node --check src/step1.js
           node --check scripts/browser-smoke-step1.mjs
           node --check src/step2.js
+          node --check scripts/browser-smoke-step2.mjs
           node --check src/ruw-data.js
           node --check src/text-classifier.js
           node --check src/embedding-classifier.js

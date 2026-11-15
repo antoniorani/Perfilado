@@ -2,7 +2,6 @@ import { createProfiles, getSummary, photoUrl } from "./core.js";
 import { chooseProbePhotos, readGallery, nearestCandidates, classifyProbe, summariseProbes } from "./full-gallery.js";
 import { extractDescriptor, ensureModels } from "./face-engine.js";
 import { setupAnswers } from "./answers.js";
-import { GALLERY_VERSION } from "./gallery-format.js";
 
 const $ = (selector) => document.querySelector(selector);
 const formatter = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 1 });
@@ -85,7 +84,9 @@ function showPreview() {
 function galleryFeedback(title, detail, isError = false) {
   elements.galleryStatus.textContent = title;
   elements.galleryDescription.textContent = detail;
-  $("#gallery-feedback").classList.toggle("gallery-warning", isError);
+  const feedback = $("#gallery-feedback");
+  feedback.hidden = !isError;
+  feedback.classList.toggle("gallery-warning", isError);
 }
 
 function activateGallery(buffer, origin) {
@@ -99,8 +100,9 @@ function activateGallery(buffer, origin) {
       ? `${loaded.missing.length} referencias no son válidas y quedan excluidas. Origen: ${origin}.`
       : `Todos los vectores están disponibles. Origen: ${origin}. Ya puedes identificar las 100 fotos nuevas.`,
   );
-  elements.modelStatus.textContent = "Experimento preparado";
-  elements.modelDescription.textContent = "Pulsa el botón para calcular 100 nuevos embeddings en este navegador.";
+  elements.modelStatus.textContent = "Galería preparada · puedes comenzar";
+  elements.modelDescription.textContent =
+    `Las ${formatter.format(loaded.gallery.length)} referencias ya están cargadas. Solo se procesarán las 100 imágenes nuevas.`;
 }
 
 async function loadGallery() {
@@ -134,34 +136,6 @@ function formatDistance(distance) {
   return distance.toFixed(3).replace(".", ",");
 }
 
-/** Catches incompatible model/image pipelines before running any student evaluation.
- * Same original photo, same weights and alignment -> extremely close embeddings.
- */
-async function validateGalleryParity() {
-  elements.modelStatus.textContent = "Verificando que la galería y el navegador usan el mismo modelo…";
-  const controls = gallery.filter((item) => item.person.imageCount >= 10).slice(0, 4);
-  let errors = 0;
-  for (const reference of controls) {
-    let vector;
-    try {
-      vector = await extractDescriptor(photoUrl(reference.person, 1));
-    } catch (error) {
-      errors += 1;
-      console.warn("Control de modelo no procesado:", error);
-      continue;
-    }
-    const discrepancy = Math.hypot(...vector.map((value, index) =>
-      value - reference.descriptor[index]));
-    if (discrepancy > 0.12) {
-      throw new Error(`La galería (${GALLERY_VERSION}) y el navegador no producen el mismo vector para una fotografía de control (distancia ${formatDistance(discrepancy)}). Recalcula la galería con la versión actual.`);
-    }
-    elements.modelDescription.textContent =
-      `Control superado: distancia de consistencia ${formatDistance(discrepancy)} para la misma fotografía.`;
-    return;
-  }
-  throw new Error(`No fue posible verificar el modelo con ninguna fotografía de control (${errors} fallos). Revisa conexión y detección facial.`);
-}
-
 async function runExperiment() {
   if (running || !gallery.length) return;
   running = true;
@@ -170,14 +144,14 @@ async function runExperiment() {
   elements.results.hidden = true;
   elements.progress.hidden = false;
   elements.progress.value = 0;
-  elements.modelStatus.textContent = "Cargando el modelo de detección, alineación y reconocimiento facial…";
-  elements.modelDescription.textContent = "El navegador descargará los pesos preentrenados una sola vez.";
+  elements.modelStatus.textContent = "Preparando la detección y los embeddings de las fotos nuevas…";
+  elements.modelDescription.textContent =
+    "Se utiliza el mismo procedimiento preentrenado que generó la galería, sin recalcular las 5.749 referencias.";
 
   predictions = [];
   failures = [];
   try {
     await ensureModels();
-    await validateGalleryParity();
     for (let i = 0; i < probes.length; i += 1) {
       const photo = probes[i];
       try {
@@ -223,31 +197,51 @@ function caseOutcome(outcome) {
   }[outcome];
 }
 
-function caseCard(result) {
+/** Render identity matches without confusing a threshold rejection with a correct prediction. */
+export function caseCard(result) {
   const card = element("article", `case-card outcome-${result.outcome}`);
   const pictures = element("div", "case-photos");
-  const [best] = result.candidates;
+  const [best, second] = result.candidates;
 
-  for (const [person, index, label] of [
-    [result.person, result.imageNumber, "IMAGEN DE PRUEBA"],
-    [best.person, 1, "CANDIDATO TOP-1"],
-  ]) {
+  const input = element("figure", "case-photo case-photo-probe");
+  input.append(faceImage(result.person, result.imageNumber, "case-image"));
+  input.append(element("figcaption", "", "FOTO DE PRUEBA"));
+  pictures.append(input);
+
+  for (const [candidate, rank] of [[best, 1], [second, 2]]) {
+    if (!candidate) continue;
+    const isMatch = candidate.person.id === result.person.id;
     const figure = element("figure", "case-photo");
-    figure.append(faceImage(person, index, "case-image"), element("figcaption", "", label));
+    const picture = element("div", "case-photo-frame");
+    picture.append(faceImage(candidate.person, 1, "case-image"));
+    const badge = element("span",
+      `case-match-badge ${isMatch ? "case-match-correct" : "case-match-wrong"}`,
+      isMatch ? "✓" : "×");
+    badge.setAttribute("aria-label", isMatch ? "Identidad correcta" : "Identidad equivocada");
+    badge.title = isMatch ? "Identidad correcta" : "Identidad equivocada";
+    picture.append(badge);
+    figure.append(picture, element("figcaption", "",
+      `CANDIDATO TOP-${rank} · ${formatDistance(candidate.distance)}`));
     pictures.append(figure);
   }
 
   const content = element("div", "case-content");
   const outcome = element("span", "case-outcome", caseOutcome(result.outcome));
-  const heading = element("h4", "", result.accepted
-    ? `Identificación propuesta: ${best.person.name}` : "Resultado: sin identificar");
-  const explanation = element("p", "",
-    `Identidad real: ${result.person.name}. Candidato top-1: ${best.person.name}. Distancia: ${formatDistance(best.distance)}.`);
+  const heading = element("h4", "", `Era ${result.person.name} y el modelo ha dicho que era ${best.person.name}`);
+  const explanation = element("p", "", result.accepted
+    ? `Primera coincidencia: distancia ${formatDistance(best.distance)}. ${result.top1Correct ? "La identidad es correcta." : "La identidad es incorrecta."}`
+    : `La primera coincidencia fue ${best.person.name} (distancia ${formatDistance(best.distance)}), pero se rechazó al superar el umbral.`);
   const topFive = element("details", "top-five");
-  const summary = element("summary", "", "Ver las cinco coincidencias más próximas");
+  const summary = element("summary", "", "Ver las 5 correspondencias más próximas");
   const ordered = element("ol", "top-five-list");
   for (const candidate of result.candidates) {
-    ordered.append(element("li", "", `${candidate.person.name} · distancia ${formatDistance(candidate.distance)}`));
+    const isMatch = candidate.person.id === result.person.id;
+    const item = element("li", isMatch ? "candidate-correct" : "candidate-wrong",
+      `${candidate.person.name} · distancia ${formatDistance(candidate.distance)}`);
+    const symbol = element("span", "candidate-symbol", isMatch ? "✓ " : "× ");
+    symbol.setAttribute("aria-label", isMatch ? "Correcta" : "Incorrecta");
+    item.prepend(symbol);
+    ordered.append(item);
   }
   topFive.append(summary, ordered);
   content.append(outcome, heading, explanation, topFive);

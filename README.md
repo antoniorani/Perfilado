@@ -82,7 +82,7 @@ Para probar la lógica (Node.js >=20):
 npm test
 ```
 
-Las respuestas se guardan localmente en el navegador, si el almacenamiento está disponible. El paso 1 no muestra controles de exportación; los pasos 2–4 mantienen la opción de exportar sus respuestas a TXT. **La interfaz no ofrece descarga del conjunto de perfiles**.
+Las respuestas de los cuatro pasos se guardan automáticamente en el navegador cuando el almacenamiento local está disponible. Los formularios no muestran avisos de guardado ni botones de exportación. **La interfaz no ofrece descarga del conjunto de perfiles**.
 
 ## Paso 2: identificación con detección y alineación real
 
@@ -100,7 +100,7 @@ La versión **v2** utiliza la misma función `computeAlignedDescriptor()` en Nod
 
 Se usa el mismo módulo `src/face-pipeline.js` para los dos entornos. Para evitar comparar vectores de métodos diferentes, el archivo de referencias tiene ahora una cabecera con versión del modelo, tamaño y huella del catálogo, definida en `src/gallery-format.js`. Los archivos anteriores `.f32` se rechazan explícitamente.
 
-Además, la web vuelve a calcular un embedding de control a partir de una imagen ya presente en la galería y verifica su concordancia **antes de evaluar las 100 nuevas**.
+La web usa la misma función versionada `computeAlignedDescriptor()` para la preparación de referencias y las fotos nuevas. La galería se comprueba al cargarse (cabecera, versión, dimensiones y catálogo), pero **el botón de identificación no recalcula embeddings de control de las fotos originales**: solo carga las redes y procesa las 100 imágenes nuevas.
 
 ### Validación previa
 
@@ -128,7 +128,7 @@ La galería y el informe están en el artefacto **lfw-aligned-v2-all-5749** de l
 
 La galería `data/lfw-gallery-v3.pfg` está incluida en el repositorio (publicación autorizada expresamente) y el paso 2 la carga de forma automática desde GitHub Pages, sin intervención del alumno. El campo de carga local solo aparece como alternativa si esa descarga falla. El navegador conserva los vectores únicamente en memoria.
 
-**Privacidad:** las plantillas de reconocimiento facial son información biométrica vinculable a identidades reales. Evitamos incorporarlas a la rama pública de GitHub. Los artefactos de Actions tienen una retención limitada, pero también deben tratarse como datos sensibles y gestionarse con las garantías necesarias. No se atribuyen posturas u opiniones políticas a las personas de LFW.
+**Privacidad:** los embeddings faciales son información biométrica vinculable a identidades reales. La galería v3 está publicada en este repositorio para la práctica docente, por lo que deben evaluarse cuidadosamente los riesgos de esa publicación y cualquier reutilización posterior. Los artefactos de Actions también requieren garantías adecuadas. No se atribuyen posturas u opiniones políticas a las personas de LFW.
 
 ### Límites docentes
 
@@ -232,7 +232,7 @@ El simulador calcula el producto de ambas tasas y su complemento, **únicamente 
 
 ### Preguntas y garantías
 
-El alumnado evalúa la acumulación de errores, las posibles consecuencias de usar los resultados contra personas, los marcos normativos según la finalidad (civil, policial, exclusivamente militar) y las salvaguardas necesarias. El material jurídico queda en un apartado desplegable para dar prioridad al relato y al ejercicio. El informe final responde a las preguntas **20–23**, se guarda únicamente en el navegador y se exporta con `src/answers.js` igual que las fases anteriores.
+El alumnado evalúa la acumulación de errores, las posibles consecuencias de usar los resultados contra personas, los marcos normativos según la finalidad (civil, policial, exclusivamente militar) y las salvaguardas necesarias. El material jurídico queda en un apartado desplegable para dar prioridad al relato y al ejercicio. Las respuestas a las preguntas **20–23** se conservan automáticamente en el navegador mediante `src/answers.js`, sin mostrar controles de exportación.
 
 ## GitHub Pages
 
