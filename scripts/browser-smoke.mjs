@@ -45,6 +45,42 @@ try {
   if (Number(testTotal.replaceAll(".","")) < 1100) throw new Error(`Unexpected held-out test size: ${testTotal}`);
   const matrix2 = await page.locator("#test-confusion tbody tr").count();
   if (matrix2 !== 3) throw new Error("Missing 3x3 final test confusion matrix");
+  // Real MiniLM + ONNX smoke test: small fixture, still trains in Chromium.
+  // This checks the CDN, worker protocol and encoder tensor dimensions.
+  const semantic = await page.evaluate(() => new Promise((resolve,reject) => {
+    const worker = new Worker("./src/semantic-worker.js", {type:"module"});
+    const timeout = setTimeout(() => {worker.terminate();reject(new Error("MiniLM worker timed out"));},180000);
+    const finish = (error,result) => {
+      clearTimeout(timeout);
+      worker.terminate();
+      error ? reject(error) : resolve(result);
+    };
+    worker.onerror = (event) => finish(new Error(event.message || "MiniLM worker error"));
+    worker.onmessage = ({data}) => {
+      if(data.type==="error")finish(new Error(data.message));
+      if(data.type==="result")finish(null,data.result);
+    };
+    worker.postMessage({
+      id:1,type:"train",target:"russia",
+      train:[
+        {text:"Condemn the violent invasion",label:"AGAINST"},
+        {text:"I reject this invasion",label:"AGAINST"},
+        {text:"Oppose the military attack",label:"AGAINST"},
+        {text:"I support this action",label:"FAVOR"},
+        {text:"I endorse this action",label:"FAVOR"},
+        {text:"I am in favor of the action",label:"FAVOR"},
+        {text:"It is sunny today",label:"NONE"},
+        {text:"The weather is good",label:"NONE"},
+        {text:"The event begins at noon",label:"NONE"},
+      ],
+      val:["I reject the military attack","I support this decision","The weather today"],
+    });
+  }));
+  if(semantic.dimension!==384 || semantic.predictions.length!==3 ||
+      semantic.predictions.some(label=>!["AGAINST","FAVOR","NONE"].includes(label))) {
+    throw new Error("Real MiniLM worker did not produce valid embeddings/predictions");
+  }
+  console.log("BROWSER_SEMANTIC_SMOKE_SUCCESS",semantic.predictions);
   await fs.mkdir("build",{recursive:true});
   await page.screenshot({path:"build/ruw-step3-desktop.png",fullPage:true});
   await page.setViewportSize({width:390,height:844});
