@@ -32,6 +32,9 @@ jobs:
           node --check src/embedding-classifier.js
           node --check src/semantic-worker.js
           node --check src/step3.js
+          node --check src/combined-risk.js
+          node --check src/step4.js
+          node --check scripts/browser-smoke-step4.mjs
           node --check src/ruw-ridge.js
           node --check scripts/verify-ruw-ridge.mjs
           node --check scripts/verify-ruw.mjs

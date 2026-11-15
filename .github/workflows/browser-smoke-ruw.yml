@@ -13,6 +13,11 @@ on:
       - data/ruw-joint-ridge-v1.json
       - assets/textos.css
       - scripts/browser-smoke.mjs
+      - evaluacion.html
+      - assets/evaluacion.css
+      - src/step4.js
+      - src/combined-risk.js
+      - scripts/browser-smoke-step4.mjs
       - .github/workflows/browser-smoke-ruw.yml
   pull_request:
     paths:
@@ -22,6 +27,11 @@ on:
       - src/embedding-classifier.js
       - src/text-classifier.js
       - scripts/browser-smoke.mjs
+      - evaluacion.html
+      - assets/evaluacion.css
+      - src/step4.js
+      - src/combined-risk.js
+      - scripts/browser-smoke-step4.mjs
       - .github/workflows/browser-smoke-ruw.yml
   workflow_dispatch:
 
@@ -45,9 +55,13 @@ jobs:
         run: python3 -m http.server 8000 > /tmp/perfilado-http.log 2>&1 &
       - name: Exercise RUW with real data in Chromium
         run: node scripts/browser-smoke.mjs
+      - name: Exercise final evaluation with hypothetical inputs in Chromium
+        run: node scripts/browser-smoke-step4.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ruw-browser-screenshots
-          path: build/ruw-step3-*.png
+          path: |
+            build/ruw-step3-*.png
+            build/step4-*.png
           retention-days: 7
