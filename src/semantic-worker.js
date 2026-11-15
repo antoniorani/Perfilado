@@ -41,8 +41,7 @@ async function encode(texts, id, phase, { remember = true } = {}) {
     }
     for (let n = 0; n < batch.length; n++) {
       const vector = Float32Array.from(output.data.subarray(n * dimension, (n + 1) * dimension));
-      if (remember) cache.set(batch[n], vector);
-      else cache.set(batch[n], vector);
+      cache.set(batch[n], vector); // Temporary for order-preserving output assembly.
     }
     output.dispose?.();
     progress(id, `${phase}: ${Math.min(i + batch.length, pending.length)} de ${pending.length} embeddings nuevos…`);
