@@ -141,6 +141,7 @@
 .biometric-procedure .process-card h4 { font-size: 1.08rem; line-height: 1.28; letter-spacing: -.02em; margin: 20px 0 10px; }
 .biometric-procedure .process-card p { font-size: .83rem; line-height: 1.68; color: #5b7068; }
 .biometric-procedure .process-card .model-name { margin-top: auto; padding-top: 15px; font-size: .72rem; color: #47715d; }
+.biometric-procedure .model-name a { color: inherit; text-underline-offset: 3px; }
 .alignment-illustration { display: flex; align-items: center; gap: clamp(18px,3vw,44px); margin: 17px 0 0; padding: 23px; border: 1px solid #dce7de; border-radius: 12px; background: #edf4ee; }
 .alignment-illustration-graphic { width: 53%; min-width: 0; }
 .alignment-illustration svg { display: block; width: 100%; height: auto; }
@@ -165,6 +166,7 @@
 
 .results-section .case-card { grid-template-columns: minmax(0,385px) minmax(0,1fr); gap: clamp(18px,3vw,28px); padding: 18px; align-items: center; }
 .results-section .case-photos { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; }
+.results-section .case-photos.case-photos-two { grid-template-columns: repeat(2,minmax(0,1fr)); }
 .results-section .case-photo { min-width: 0; }
 .case-photo-frame { position: relative; }
 .results-section .case-image { height: clamp(110px,12vw,156px); width: 100%; object-fit: cover; }

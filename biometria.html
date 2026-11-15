@@ -60,13 +60,13 @@
             <div class="process-card-top"><svg class="process-icon" aria-hidden="true"><use href="#biometric-align"></use></svg><span class="process-number">02</span></div>
             <h4>Detectamos y alineamos</h4>
             <p>Localizamos el rostro y sus <strong>68 puntos de referencia</strong> (ojos, nariz, boca…). Con ellos normalizamos su posición para comparar caras de manera más consistente.</p>
-            <p class="model-name">Detección: <strong>SSD MobileNet V1</strong> · Alineación: <strong>Face Landmark 68</strong></p>
+            <p class="model-name">Detección: <a href="https://github.com/justadudewhohacks/face-api.js#ssd-mobilenet-v1" target="_blank" rel="noopener noreferrer">SSD MobileNet V1 ↗</a> · Alineación: <a href="https://github.com/justadudewhohacks/face-api.js#models-face-landmark-detection" target="_blank" rel="noopener noreferrer">Face Landmark 68 ↗</a></p>
           </article>
           <article class="process-card">
             <div class="process-card-top"><svg class="process-icon" aria-hidden="true"><use href="#biometric-vector"></use></svg><span class="process-number">03</span></div>
             <h4>Calculamos embeddings</h4>
             <p>La red transforma cada rostro alineado en un <strong>vector de 128 números</strong> que representa características faciales.</p>
-            <p class="model-name">Modelo: <strong>Face Recognition Net</strong> de face-api.js</p>
+            <p class="model-name">Modelo: <a href="https://github.com/justadudewhohacks/face-api.js#models-face-recognition" target="_blank" rel="noopener noreferrer">Face Recognition Net ↗</a> de face-api.js</p>
           </article>
           <article class="process-card">
             <div class="process-card-top"><svg class="process-icon" aria-hidden="true"><use href="#biometric-database"></use></svg><span class="process-number">04</span></div>
@@ -170,7 +170,7 @@
           <div class="threshold-control"><output id="threshold-value" for="distance-threshold">0,600</output><input type="range" id="distance-threshold" min="0.25" max="1.40" step="0.025" value="0.60"><div class="threshold-labels"><span>Más estricto</span><span>Más permisivo</span></div></div>
         </div>
         <div class="metrics-explanation"><strong id="precision-text">—</strong><span id="metrics-scope">—</span></div>
-        <div class="preview-heading"><h3>Revisa las coincidencias</h3><p>Compara la fotografía de prueba con los candidatos TOP-1 y TOP-2. Las marcas indican si cada identidad coincide con la real; puedes desplegar los cinco candidatos ordenados por distancia.</p></div>
+        <div class="preview-heading"><h3>Revisa las coincidencias</h3><p>Compara la fotografía de prueba con el candidato TOP-1. Si se equivoca, también verás el TOP-2. Las marcas indican si la identidad es correcta; puedes desplegar los cinco candidatos ordenados por distancia.</p></div>
         <div class="case-toolbar"><label class="field"><span>Ver resultados</span><select id="case-filter"><option value="all">Todos</option><option value="errors">Solo errores</option><option value="correct">Solo aciertos</option><option value="rejected">Solo rechazados</option></select></label><span id="case-summary">—</span></div>
         <div id="cases" class="case-list"></div>
         <div class="table-footer"><p id="page-summary"></p><div class="pagination"><button id="cases-previous" type="button" class="button button-secondary button-small">← Anterior</button><span id="cases-counter">—</span><button id="cases-next" type="button" class="button button-secondary button-small">Siguiente →</button></div></div>

@@ -42,6 +42,12 @@ try {
   for (const term of ["Face Landmark 68", "Face Recognition Net", "SSD MobileNet V1", "distancia euclidiana"]) {
     if (!explanation.includes(term)) throw new Error("Missing technical explanation: " + term);
   }
+  const modelLinks = await page.locator(".model-name a").evaluateAll(
+    links => links.map(link => new URL(link.href).hash),
+  );
+  if (modelLinks.join("|") !== "#ssd-mobilenet-v1|#models-face-landmark-detection|#models-face-recognition") {
+    throw new Error("Expected direct documentation links for the three models: " + modelLinks);
+  }
   if (await page.locator("#save-state, #export-answers, .question-actions").count()) {
     throw new Error("Step 2 should not display worksheet status/export controls");
   }
@@ -97,6 +103,35 @@ try {
   if (await card.locator(".top-five-list .candidate-correct").count() !== 1 ||
       await card.locator(".top-five-list .candidate-wrong").count() !== 4) {
     throw new Error("The top five list must indicate all incorrect/correct matches");
+  }
+
+  // TOP-2 is not shown when TOP-1 is correct, even if the threshold rejected the prediction.
+  await page.evaluate(async () => {
+    const { caseCard } = await import("./src/step2.js");
+    const { createProfiles } = await import("./src/core.js");
+    const { identities } = await (await fetch("./data/lfw-identities.json")).json();
+    const [real, ...others] =
+      createProfiles(identities).filter(person => person.imageCount >= 2).slice(0, 5);
+    const candidates = [real, ...others].map((person, index) => ({
+      person, distance: 0.3 + index * 0.06,
+    }));
+    for (const [accepted, outcome] of [[true, "correct"], [false, "rejected"]]) {
+      const card = caseCard({
+        person: real, imageNumber: 2, candidates, nearest: candidates[0],
+        top1Correct: true, accepted, outcome,
+      });
+      card.dataset.testOutcome = outcome;
+      document.querySelector("#cases").append(card);
+    }
+  });
+  for (const outcome of ["correct", "rejected"]) {
+    const match = page.locator(`#cases .case-card[data-test-outcome="${outcome}"]`);
+    if (await match.locator(".case-photo").count() !== 2 ||
+        await match.locator(".case-match-correct").count() !== 1 ||
+        await match.locator(".case-photos-two").count() !== 1 ||
+        (await match.innerText()).includes("CANDIDATO TOP-2")) {
+      throw new Error("TOP-2 should be hidden after a correct TOP-1: " + outcome);
+    }
   }
 
   await page.locator("#q12").fill("Se debe examinar la base jurídica y minimización.");
