@@ -1,9 +1,9 @@
 import { loadRUW, LABELS, LABEL_NAMES, TARGETS, labelCounts, normalizedText } from "./ruw-data.js";
 import {
-  MODEL_NAMES, buildVectorizer, trainClassifier, evaluateClassifier, baselineLabel,
+  MODEL_NAMES, buildVectorizer, trainClassifier, evaluateClassifier, evaluatePredictions, baselineLabel,
 } from "./text-classifier.js";
 import { setupAnswers } from "./answers.js";
-import { loadRidgeModel } from "./ruw-ridge.js";
+
 
 const $ = (selector) => document.querySelector(selector);
 const number = new Intl.NumberFormat("es-ES");
@@ -38,6 +38,36 @@ let explorePage=1;
 let reviewRows=[];
 let reviewPage=1;
 let testWasViewed=false;
+let configurationVersion=0;
+let semanticWorker=null;
+let semanticRequestId=0;
+const semanticRequests=new Map();
+
+function runSemantic(type, payload, onProgress=()=>{}) {
+  if(!semanticWorker) {
+    semanticWorker=new Worker(new URL("./semantic-worker.js", import.meta.url),{type:"module"});
+    semanticWorker.addEventListener("message",({data})=>{
+      const request=semanticRequests.get(data.id);
+      if(!request)return;
+      if(data.type==="progress"){request.onProgress(data.message);return;}
+      semanticRequests.delete(data.id);
+      if(data.type==="error")request.reject(new Error(data.message));
+      else if(data.type==="result")request.resolve(data.result);
+      else request.reject(new Error("Respuesta desconocida del trabajador"));
+    });
+    semanticWorker.addEventListener("error",(event)=>{
+      for(const request of semanticRequests.values())request.reject(new Error(event.message||"No se pudo cargar el motor de embeddings"));
+      semanticRequests.clear();
+      semanticWorker.terminate();
+      semanticWorker=null;
+    });
+  }
+  const id=++semanticRequestId;
+  return new Promise((resolve,reject)=>{
+    semanticRequests.set(id,{resolve,reject,onProgress});
+    semanticWorker.postMessage({id,type,...payload});
+  });
+}
 
 function element(tag, className, content) {
   const node=document.createElement(tag);
@@ -188,6 +218,11 @@ function classMetrics(mount,stats) {
 }
 
 function featureTerms() {
+  if(model.name==="semantic"){
+    $("#feature-terms").replaceChildren(element("p","",
+      "MiniLM transforma cada publicación en 384 componentes semánticos. La cabeza logística aprende pesos sobre esos componentes; no dispone de una lista fiable de palabras que expliquen una predicción."));
+    return;
+  }
   const fragment=document.createDocumentFragment();
   for(const label of LABELS){
     const group=element("div","feature-group");
@@ -244,18 +279,19 @@ function showValidation() {
 }
 
 function modelChanged() {
+  configurationVersion++;
   model=null;
   validation=null;
   controls.results.hidden=true;
   controls.testSection.hidden=true;
   controls.testResults.hidden=true;
-  const advanced=controls.model.value==="joint-ridge";
+  const semantic=controls.model.value==="semantic";
   controls.alphaField.hidden=controls.model.value!=="nb";
-  for(const input of [controls.ngrams,controls.vocab]) input.disabled=advanced;
-  controls.train.textContent=advanced?"Cargar y validar modelo →":"Entrenar y validar →";
-  controls.modelExplanation.textContent=advanced
-    ? "Ridge conjunto: modelo real entrenado previamente con RUW (4.095 textos). Predice una de nueve combinaciones de postura y utiliza palabras, trigramas y fragmentos de caracteres. Su configuración está fijada para reproducir los resultados; no se reentrena aquí."
-    : "Modelo sencillo: el vocabulario TF-IDF y el clasificador se ajustan de verdad en tu navegador con los textos de entrenamiento. Puedes cambiar la representación y comparar resultados.";
+  for(const input of [controls.ngrams,controls.vocab]) input.disabled=semantic;
+  controls.train.textContent="Entrenar y validar →";
+  controls.modelExplanation.textContent=semantic
+    ? "Embeddings semánticos: MiniLM (encoder ya preentrenado) convierte las publicaciones en vectores de 384 dimensiones mediante ONNX en este navegador. Después se entrena aquí, desde cero, un clasificador supervisado con RUW. La primera descarga y el cálculo de miles de embeddings pueden tardar; el corpus y los vectores permanecen en memoria, sin enviarse a una API de inferencia."
+    : "Modelo léxico: tanto el vocabulario TF-IDF como el clasificador se ajustan en este navegador con la partición de entrenamiento de RUW. Puedes cambiar la representación y comparar resultados.";
   controls.trainStatus.textContent="Configuración modificada";
   controls.trainDescription.textContent=testWasViewed
     ? "El conjunto de prueba ya se ha consultado. Un nuevo ajuste a partir de él puede sesgar las conclusiones."
