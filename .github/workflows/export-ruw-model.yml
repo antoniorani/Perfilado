@@ -33,4 +33,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/ruw-joint-ridge-v1.json
-          git diff --cached --quiet || (git commit -m "data: reproducible RUW joint Ridge learned weights" && git push origin HEAD:feat/ruw-better-classifier)
+          git diff --cached --quiet || git commit -m "data: reproducible RUW joint Ridge learned weights"
+          git fetch origin feat/ruw-better-classifier
+          git rebase origin/feat/ruw-better-classifier
+          git push origin HEAD:feat/ruw-better-classifier
