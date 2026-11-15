@@ -7,7 +7,7 @@ Laboratorio docente de inteligencia artificial, identificación facial y protecc
 - **Introducción:** encargo del equipo técnico y recorrido de la práctica, presentado al final.
 - **Paso 1:** una imagen por identidad, nombre, código de perfil y atributos sintéticos. Exploración con búsqueda, filtros, gráficos y preguntas de reflexión.
 - **Paso 2:** 5.749 referencias calculadas con detección y alineación facial, y 100 fotos nuevas procesadas en el navegador para buscar top-1/top-5 y ajustar el umbral.
-- **Paso 3:** clasificación real de RUW con dos objetivos (Rusia/Ucrania), dos modelos entrenados en navegador y **Ridge conjunto preentrenado** con nueve combinaciones de postura, validación, prueba y matriz de confusión.
+- **Paso 3:** clasificación real de RUW con dos objetivos (Rusia/Ucrania), tres clasificadores entrenados **en el navegador**, incluido MiniLM como extractor de embeddings semánticos y una cabeza logística supervisada, con validación, prueba y matriz de confusión.
 - **Paso 4:** evaluación conjunta pendiente de desarrollar.
 
 ## Datos
@@ -22,7 +22,7 @@ Este proyecto no habilita la reutilización libre de las fotografías para otras
 
 ## Código y pruebas
 
-Web estática sin dependencias: HTML, CSS y módulos de JavaScript. No necesita backend, instalación ni compilación.
+Web estática sin backend, instalación ni compilación: HTML, CSS y módulos de JavaScript. La opción semántica descarga Transformers.js y el encoder MiniLM desde CDN/Hugging Face en su primer uso y ejecuta ONNX dentro del navegador.
 
 ```text
 index.html                 Introducción
@@ -50,8 +50,10 @@ tests/full-gallery.test.js   Pruebas de búsqueda y umbrales
 textos.html                Paso 3: clasificación de publicaciones
 assets/textos.css          Diseño responsive del laboratorio NLP
 src/ruw-data.js            Lectura de RUW, limpieza y divisiones
-src/text-classifier.js     Vectores TF-IDF y modelos supervisados
-src/ruw-ridge.js           Inferencia JS del Ridge conjunto preentrenado
+src/text-classifier.js     Vectores TF-IDF, métricas compartidas y modelos léxicos
+src/embedding-classifier.js  Regresión logística entrenada en el navegador
+src/semantic-worker.js    Embeddings MiniLM/ONNX en Web Worker
+src/ruw-ridge.js           Modelo Ridge histórico (ya no usado en la interfaz)
 data/ruw-joint-ridge-v1.json Modelo aprendido, sin publicaciones de RUW
 scripts/export-ruw-joint-model.py Entrenamiento reproducible con sklearn
 scripts/verify-ruw-ridge.mjs Paridad de predicciones JS/sklearn
@@ -173,14 +175,19 @@ Las coincidencias textuales se excluyen con prioridad **prueba → validación �
 
 ### Modelos reales y experimento
 
-La aplicación **no usa resultados inventados ni una red neuronal ficticia**:
+La aplicación **no usa puntuaciones inventadas**. En el paso 3 todos los clasificadores seleccionables se entrenan cuando el usuario pulsa «Entrenar y validar», directamente en su navegador:
 
-1. Construye un **vector TF-IDF disperso** de palabras (o palabras y pares) con el conjunto de entrenamiento. Es una representación léxica y **no** un embedding semántico neuronal tipo BERT.
-2. Permite entrenar en el navegador dos clasificadores alternativos: **Naive Bayes multinomial** sobre TF-IDF o **clasificador de centroides por similitud coseno**. Ofrece además un **Ridge conjunto de nueve clases**, entrenado previamente con scikit-learn sobre los 4.095 textos de entrenamiento y exportado como parámetros para inferencia local en JavaScript (no se presenta falsamente como un entrenamiento en vivo).
-3. Ajusta objetivo (Rusia/Ucrania), representación, tamaño de vocabulario y suavizado (Naive Bayes).
-4. Muestra exactitud, **F1 macro**, matriz de confusión, métricas por clase, términos del modelo y errores del conjunto de **validación**.
-5. Tras elegir configuración, desbloquea una evaluación separada del **conjunto de prueba reservado**, con su matriz de confusión. Se advierte que utilizar resultados de prueba para volver a ajustar parámetros introduce sesgo.
-6. Permite analizar una frase escrita por el alumno, exclusivamente en memoria local.
+1. **MiniLM + regresión logística (opción inicial):** carga el encoder `Xenova/all-MiniLM-L6-v2`, que ya está preentrenado, mediante Transformers.js 3.8.1 y ONNX Runtime Web (WASM). Calcula embeddings de **384 dimensiones** de los textos de entrenamiento y validación. Entrena **desde cero, en un Web Worker**, una cabeza Softmax de tres clases usando mini-lotes y Adam. No se está entrenando desde cero el propio Transformer: únicamente el clasificador supervisado RUW.
+2. **Naive Bayes o centroides TF-IDF:** construyen el vocabulario exclusivamente con el entrenamiento y ajustan sus parámetros en memoria en el navegador.
+3. Se elige la postura del texto **respecto a Rusia o Ucrania**. La puntuación de validación se calcula con el conjunto oficial `Dev`, sin usar sus etiquetas para entrenar. Se muestran exactitud, **F1 macro**, matriz de confusión, métricas por clase y errores.
+4. **Prueba reservada:** no se calcula su embedding ni se utiliza ninguna etiqueta hasta que se pulsa «Evaluar conjunto de prueba». Es un test independiente, nunca una métrica para seleccionar hiperparámetros.
+5. **Predicción manual:** el texto introducido por el estudiante se vectoriza localmente con el mismo encoder o vectorizador; no se envía a una API de inferencia.
+
+El Web Worker mantiene **textos y embeddings solo en memoria durante la sesión**; no persiste los vectores en GitHub ni en almacenamiento del navegador. La primera ejecución requiere descargar código de jsDelivr y archivos de modelo de Hugging Face: hay conexiones a terceros **para obtener los pesos**, no para enviar las publicaciones a inferencia remota. Si el navegador está sin conexión o no puede descargar el modelo, siguen disponibles las alternativas TF-IDF. La extracción de miles de embeddings en WASM puede tardar considerablemente en equipos poco potentes.
+
+### Métricas históricas verificadas (referencia)
+
+Las siguientes cifras corresponden a ejecuciones anteriores del repositorio con RUW en validación. **No son puntuaciones medidas del nuevo modelo semántico en navegador**, que deben observarse durante la ejecución.
 
 En la auditoría con el corpus original, vocabulario de 2.500 términos y unigramas, se obtuvieron las siguientes métricas de validación **reales**, no extrapolables a opiniones de personas:
 
@@ -193,13 +200,13 @@ En la auditoría con el corpus original, vocabulario de 2.500 términos y unigra
 | Rusia | **Ridge conjunto preentrenado** | **56,8 %** | **53,9 %** |
 | Ucrania | **Ridge conjunto preentrenado** | **55,6 %** | **53,2 %** |
 
-El modelo Ridge conjunto considera las combinaciones `AGAINST/FAVOR/NONE` respecto a ambos objetivos en lugar de predecir dos etiquetas de forma aislada. Utiliza TF-IDF de palabras hasta trigramas y de caracteres dentro de palabra (`char_wb`), con regularización Ridge (`alpha=1`). Fue seleccionado **solo sobre los 599 textos de validación**, por lo que las cifras mostradas no son resultados de una prueba final independiente. El alumno puede reservar los 1.187 textos de prueba para evaluarlo después.
+El modelo Ridge conjunto histórico (que ya no aparece como opción para entrenar en la web) considera las combinaciones `AGAINST/FAVOR/NONE` respecto a ambos objetivos en lugar de predecir dos etiquetas de forma aislada. Utiliza TF-IDF de palabras hasta trigramas y de caracteres dentro de palabra (`char_wb`), con regularización Ridge (`alpha=1`). Fue seleccionado **solo sobre los 599 textos de validación**, por lo que las cifras mostradas no son resultados de una prueba final independiente. El alumno puede reservar los 1.187 textos de prueba para evaluarlo después.
 
-El artefacto `data/ruw-joint-ridge-v1.json` (~2,4 MB) contiene **únicamente vocabulario, IDF, pesos cuantizados e información de validación**, nunca las publicaciones originales. La generación es reproducible mediante `node scripts/benchmark-ruw-data.mjs` y `python3 scripts/export-ruw-joint-model.py` (requiere scikit-learn). La verificación `node scripts/verify-ruw-ridge.mjs` compara el modelo de scikit-learn con JavaScript en los mismos 599 textos: coincidencia en **597/599 predicciones conjuntas**, y exactitudes equivalentes para ambos objetivos tras cuantizar los pesos. El modelo NO es una inferencia fiable de las opiniones de una persona.
+El artefacto histórico `data/ruw-joint-ridge-v1.json` (~2,4 MB), mantenido para auditoría y no cargado por el laboratorio interactivo, contiene **únicamente vocabulario, IDF, pesos cuantizados e información de validación**, nunca las publicaciones originales. La generación es reproducible mediante `node scripts/benchmark-ruw-data.mjs` y `python3 scripts/export-ruw-joint-model.py` (requiere scikit-learn). La verificación `node scripts/verify-ruw-ridge.mjs` compara el modelo de scikit-learn con JavaScript en los mismos 599 textos: coincidencia en **597/599 predicciones conjuntas**, y exactitudes equivalentes para ambos objetivos tras cuantizar los pesos. El modelo NO es una inferencia fiable de las opiniones de una persona.
 
-Se compararon 70 combinaciones de modelos estadísticos y representaciones de palabras y caracteres, además de modelos de embeddings semánticos preentrenados **MiniLM** y **BGE-small**, sin mejora de F1 macro sobre la mejor opción léxica en este corpus. Para el modelo conjunto, los mejores valores F1 macro encontrados fueron **53,9 % en Rusia** y **53,2 % en Ucrania**; no conviene presentar los porcentajes superiores publicados en otros estudios como si fuesen los de este experimento.
+Antes de esta actualización se compararon 70 combinaciones de modelos estadísticos y representaciones de palabras y caracteres, además de modelos de embeddings semánticos preentrenados **MiniLM** y **BGE-small**, sin mejora de F1 macro sobre la mejor opción léxica en ese experimento. El nuevo clasificador semántico tampoco tiene garantizada una mejora: el estudiante debe contrastarla con la validación real. Para el modelo conjunto, los mejores valores F1 macro encontrados fueron **53,9 % en Rusia** y **53,2 % en Ucrania**; no conviene presentar los porcentajes superiores publicados en otros estudios como si fuesen los de este experimento.
 
-Estos modelos son deliberadamente manejables para un taller en el navegador. No replican los algoritmos avanzados ni las cifras del artículo RUW; ofrecen una **línea de base reproducible**. La exactitud puede parecer superior aun cuando algunas clases tengan una sensibilidad baja: por eso incluimos F1 macro y matriz de confusión.
+Los clasificadores son deliberadamente manejables para un taller en el navegador, aunque la primera extracción con MiniLM consume más recursos. No replican los algoritmos avanzados ni las cifras del artículo RUW; ofrecen una **línea de base reproducible**. La exactitud puede parecer superior aun cuando algunas clases tengan una sensibilidad baja: por eso incluimos F1 macro y matriz de confusión.
 
 Las pruebas automatizadas ejecutan `npm test`; para auditar la fuente RUW con conexión a internet, ejecuta `node scripts/verify-ruw.mjs`. La integración real del navegador se valida mediante Chromium en `scripts/browser-smoke.mjs`. Los datos no se envían a una API propia de Perfilado.
 
