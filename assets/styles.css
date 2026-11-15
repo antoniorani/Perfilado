@@ -268,7 +268,7 @@ a.journey-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); b
 /* Introduction: the journey is an overview, not a shortcut past the exercise. */
 .hero-author { margin: 23px 0 0; color: #b5cfc8; font-size: .85rem; }
 .hero-author strong { color: #fff; font-weight: 760; }
-.journey-cta { display: flex; justify-content: center; margin-top: 34px; }
+.journey-cta { display: flex; justify-content: flex-start; margin-top: 34px; }
 
 /* Step 1: selectable full-catalog distribution and accessible photo preview. */
 .distribution-controls { margin-bottom: 16px; }

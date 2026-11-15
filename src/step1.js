@@ -154,7 +154,14 @@ function showDistribution(summary) {
 }
 
 async function main() {
-  setupAnswers({ first: 1, last: 5, additionalIds: ["q5b"], step: 1, title: "PERFILADO — PASO 1: EXPLORACIÓN DE DATOS", filename: "perfilado-paso1-respuestas.txt" });
+  // Preserve drafts from the previously numbered "05 bis" prompt.
+  try {
+    const oldAnswer = localStorage.getItem("perfilado:step1:q5b");
+    if (oldAnswer !== null && localStorage.getItem("perfilado:step1:q6") === null) {
+      localStorage.setItem("perfilado:step1:q6", oldAnswer);
+    }
+  } catch { /* Local storage may be unavailable. */ }
+  setupAnswers({ first: 1, last: 6, step: 1 });
   for (const zone of ZONES) {
     const option = document.createElement("option");
     option.value = zone;

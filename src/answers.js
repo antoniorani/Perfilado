@@ -10,13 +10,13 @@ export function setupAnswers({ first, last, step, title, filename, additionalIds
     answer.addEventListener("input", () => {
       try {
         localStorage.setItem(key, answer.value);
-        status.textContent = "Respuestas guardadas en este navegador.";
+        if (status) status.textContent = "Respuestas guardadas en este navegador.";
       } catch {
-        status.textContent = "No es posible guardar aquí. Exporta las respuestas para conservarlas.";
+        if (status) status.textContent = "No es posible guardar aquí. Exporta las respuestas para conservarlas.";
       }
     });
   }
-  exportButton.addEventListener("click", () => {
+  if (exportButton) exportButton.addEventListener("click", () => {
     const rows = ids.map((id) => {
       const question = document.querySelector(`label[for="${id}"]`).textContent.trim();
       const answer = document.getElementById(id).value.trim();

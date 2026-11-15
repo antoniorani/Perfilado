@@ -82,7 +82,7 @@ Para probar la lógica (Node.js >=20):
 npm test
 ```
 
-Las respuestas se guardan localmente en el navegador, si el almacenamiento está disponible, y pueden exportarse a TXT. **La interfaz ya no ofrece descarga del conjunto de perfiles**.
+Las respuestas se guardan localmente en el navegador, si el almacenamiento está disponible. El paso 1 no muestra controles de exportación; los pasos 2–4 mantienen la opción de exportar sus respuestas a TXT. **La interfaz no ofrece descarga del conjunto de perfiles**.
 
 ## Paso 2: identificación con detección y alineación real
 
