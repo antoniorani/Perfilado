@@ -265,12 +265,16 @@ function modelChanged() {
 async function train() {
   if(!corpus)return;
   controls.train.disabled=true;
-  controls.trainStatus.textContent="Entrenando el clasificador con publicaciones reales…";
-  controls.trainDescription.textContent="El vocabulario y el modelo se calculan en tu navegador. No se envían textos al servidor.";
+  const advanced=controls.model.value==="joint-ridge";
+  controls.trainStatus.textContent=advanced
+    ? "Cargando los parámetros reales del modelo conjunto…"
+    : "Entrenando el clasificador con publicaciones reales…";
+  controls.trainDescription.textContent=advanced
+    ? "Este Ridge fue entrenado previamente con los datos originales de RUW. El navegador lo aplicará sin enviar textos a otro servidor."
+    : "El vocabulario y el modelo se calculan en tu navegador. No se envían textos al servidor.";
   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
   try {
     selectedTarget=controls.target.value;
-    const advanced=controls.model.value==="joint-ridge";
     if(advanced) {
       model=await loadRidgeModel(selectedTarget);
     } else {
