@@ -8,7 +8,8 @@ import { LABELS } from "./ruw-data.js";
 export const MODEL_NAMES = Object.freeze({
   nb: "Naive Bayes multinomial",
   centroid: "Prototipos por similitud coseno",
-  "joint-ridge": "Ridge conjunto preentrenado",
+  "joint-ridge": "Ridge conjunto preentrenado (histórico)",
+  semantic: "MiniLM + regresión logística entrenada en navegador",
 });
 const LABEL_INDEX = new Map(LABELS.map((name, i) => [name, i]));
 
@@ -161,4 +162,16 @@ export function evaluateClassifier(model, rows, target) {
   const accuracy=decisions.length?correct/decisions.length:null;
   const macroF1=perClass.reduce((sum,r)=>sum+r.f1,0)/perClass.length;
   return {matrix,decisions,perClass,correct,total:decisions.length,accuracy,macroF1};
+}
+
+/** Evaluate predictions supplied in the same order as a held-out split.
+ * A semantic worker receives only texts, not validation/test labels.
+ */
+export function evaluatePredictions(rows, target, predictions) {
+  if(!Array.isArray(predictions) || predictions.length!==rows.length
+    || predictions.some(label=>!LABEL_INDEX.has(label))) {
+    throw new Error("Predicciones semánticas incompatibles con la partición");
+  }
+  let index=0;
+  return evaluateClassifier({ predictText:()=>({label:predictions[index++]}) }, rows, target);
 }
