@@ -73,16 +73,23 @@ export function createRidgeModel(payload,target) {
   if(payload?.format!=="RUW-joint-ridge-1" || payload.revision!==RUW_REVISION
     || !["russia","ukraine"].includes(target)
     || payload.classNames?.length!==9 || payload.representation?.length!==2
-    || payload.coefficients?.length!==9 || payload.intercepts?.length!==9) {
+    || payload.weightsI16?.scale?.length!==9 || payload.intercepts?.length!==9) {
     throw new Error("Modelo RUW preentrenado incompatible con la versión del corpus");
   }
   const extractors=payload.representation.map(buildExtractor);
   const size=extractors.reduce((s,x)=>s+x.size,0);
-  const coeffs=payload.coefficients.map((row)=>{
-    if(row.length!==size)throw new Error("Coeficientes preentrenados incompletos");
-    const converted=Float32Array.from(row);
-    if(converted.some(x=>!Number.isFinite(x)))throw new Error("Pesos inválidos");
-    return converted;
+  const {weightsI16}=payload;
+  if(weightsI16.shape?.[0]!==9 || weightsI16.shape?.[1]!==size) {
+    throw new Error("Dimensiones de pesos incompatibles");
+  }
+  const bytes=atob(weightsI16.bytes);
+  if(bytes.length!==9*size*2)throw new Error("Archivo de pesos incompleto");
+  const raw=new Uint8Array(bytes.length);
+  for(let i=0;i<bytes.length;i++)raw[i]=bytes.charCodeAt(i);
+  const quantized=new Int16Array(raw.buffer);
+  const coeffs=weightsI16.scale.map((scale,c)=>{
+    if(!Number.isFinite(scale)||scale<=0)throw new Error("Escala del modelo inválida");
+    return Float32Array.from(quantized.subarray(c*size,(c+1)*size),v=>v*scale);
   });
   const intercepts=Float32Array.from(payload.intercepts);
   const classNames=payload.classNames.map(name=>name.split("/"));
