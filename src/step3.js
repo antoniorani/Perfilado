@@ -3,6 +3,7 @@ import {
   MODEL_NAMES, buildVectorizer, trainClassifier, evaluateClassifier, baselineLabel,
 } from "./text-classifier.js";
 import { setupAnswers } from "./answers.js";
+import { loadRidgeModel } from "./ruw-ridge.js";
 
 const $ = (selector) => document.querySelector(selector);
 const number = new Intl.NumberFormat("es-ES");
@@ -25,6 +26,7 @@ const controls = {
   errorCount:$("#error-counter"), errorPrev:$("#error-prev"), errorNext:$("#error-next"),
   testSection:$("#final-test"), testButton:$("#reveal-test"), testResults:$("#test-results"),
   manual:$("#manual-text"), manualButton:$("#manual-run"), manualResult:$("#manual-result"),
+  modelExplanation:$("#model-explanation"),
 };
 
 let corpus=null;
@@ -247,11 +249,17 @@ function modelChanged() {
   controls.results.hidden=true;
   controls.testSection.hidden=true;
   controls.testResults.hidden=true;
+  const advanced=controls.model.value==="joint-ridge";
   controls.alphaField.hidden=controls.model.value!=="nb";
+  for(const input of [controls.ngrams,controls.vocab]) input.disabled=advanced;
+  controls.train.textContent=advanced?"Cargar y validar modelo →":"Entrenar y validar →";
+  controls.modelExplanation.textContent=advanced
+    ? "Ridge conjunto: modelo real entrenado previamente con RUW (4.095 textos). Predice una de nueve combinaciones de postura y utiliza palabras, trigramas y fragmentos de caracteres. Su configuración está fijada para reproducir los resultados; no se reentrena aquí."
+    : "Modelo sencillo: el vocabulario TF-IDF y el clasificador se ajustan de verdad en tu navegador con los textos de entrenamiento. Puedes cambiar la representación y comparar resultados.";
   controls.trainStatus.textContent="Configuración modificada";
   controls.trainDescription.textContent=testWasViewed
     ? "El conjunto de prueba ya se ha consultado. Un nuevo ajuste a partir de él puede sesgar las conclusiones."
-    : "Vuelve a entrenar para evaluar esta configuración en validación.";
+    : "Pulsa el botón para evaluar esta configuración en validación.";
 }
 
 async function train() {
@@ -262,14 +270,21 @@ async function train() {
   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
   try {
     selectedTarget=controls.target.value;
-    const vectorizer=buildVectorizer(corpus.train,
-      {ngrams:Number(controls.ngrams.value),maxFeatures:Number(controls.vocab.value)});
-    model=trainClassifier(corpus.train,selectedTarget,controls.model.value,vectorizer,
-      {alpha:Number(controls.alpha.value)});
+    const advanced=controls.model.value==="joint-ridge";
+    if(advanced) {
+      model=await loadRidgeModel(selectedTarget);
+    } else {
+      const vectorizer=buildVectorizer(corpus.train,
+        {ngrams:Number(controls.ngrams.value),maxFeatures:Number(controls.vocab.value)});
+      model=trainClassifier(corpus.train,selectedTarget,controls.model.value,vectorizer,
+        {alpha:Number(controls.alpha.value)});
+    }
     validation=evaluateClassifier(model,corpus.val,selectedTarget);
-    controls.trainStatus.textContent=`Modelo entrenado: ${MODEL_NAMES[model.name]}`;
+    controls.trainStatus.textContent=advanced
+      ? "Modelo conjunto Ridge cargado y evaluado":"Modelo entrenado: "+MODEL_NAMES[model.name];
     controls.trainDescription.textContent=
-      `${number.format(corpus.train.length)} textos de entrenamiento y ${number.format(corpus.val.length)} de validación. ${number.format(vectorizer.size)} términos aprendidos. F1 macro en validación: ${percent(validation.macroF1)}.` +
+      `${number.format(corpus.train.length)} textos de entrenamiento y ${number.format(corpus.val.length)} de validación. ${number.format(model.vectorizer.size)} características. F1 macro en validación: ${percent(validation.macroF1)}.` +
+      (advanced?" Este Ridge se entrenó previamente con el conjunto de entrenamiento, no en el navegador.":"") +
       (testWasViewed ? " Aviso: la prueba final ya fue consultada; no la utilices para ajustar parámetros." : "");
     showValidation();
     controls.results.scrollIntoView({behavior:"smooth",block:"start"});
@@ -329,7 +344,7 @@ async function init() {
   controls.errorFilter.addEventListener("change",updateReviews);
   controls.errorPrev.addEventListener("click",()=>{if(reviewPage>1){reviewPage-=1;renderReviews();}});
   controls.errorNext.addEventListener("click",()=>{if(reviewPage*PER_PAGE<reviewRows.length){reviewPage+=1;renderReviews();}});
-  controls.alphaField.hidden=false;
+  modelChanged();
   try{
     corpus=await loadRUW();
     renderCorpus();
