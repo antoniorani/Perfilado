@@ -1,0 +1,47 @@
+name: Build joint RUW pretrained model
+on:
+  push:
+    branches: [feat/ruw-better-classifier]
+    paths:
+      - scripts/export-ruw-joint-model.py
+      - .github/workflows/export-ruw-model.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/ruw-better-classifier
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node scripts/benchmark-ruw-data.mjs
+      - run: python3 -m pip install --break-system-packages -q "scikit-learn>=1.5,<1.9"
+      - run: python3 scripts/export-ruw-joint-model.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruw-joint-ridge-v1
+          path: data/ruw-joint-ridge-v1.json
+          retention-days: 14
+      - name: Commit only learned parameters, never original texts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ruw-joint-ridge-v1.json
+          git diff --cached --quiet || git commit -m "data: reproducible RUW joint Ridge learned weights"
+          for attempt in 1 2 3 4 5 6 7 8; do
+            git fetch origin feat/ruw-better-classifier
+            git rebase origin/feat/ruw-better-classifier
+            if git push origin HEAD:feat/ruw-better-classifier; then
+              echo "Model committed after attempt $attempt"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Unable to push model after retries" >&2
+          exit 1

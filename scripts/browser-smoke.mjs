@@ -12,12 +12,17 @@ try {
   await page.getByText("Corpus RUW cargado correctamente").waitFor({timeout:45000});
   const samples = await page.locator(".tweet-card").count();
   if (samples !== 5) throw new Error(`Expected 5 examples; got ${samples}`);
+  // Advanced model was genuinely trained offline; browser performs inference.
+  if (await page.locator("#model-select").inputValue() !== "joint-ridge") {
+    throw new Error("The new recommended model is not the default");
+  }
   await page.locator("#train-model").click();
-  await page.getByText("Modelo entrenado:", {exact:false}).waitFor({timeout:30000});
+  await page.getByText("Modelo conjunto Ridge cargado y evaluado").waitFor({timeout:45000});
   const score = (await page.locator("#metric-accuracy").textContent()).trim();
   const matrixRows = await page.locator("#confusion-matrix tbody tr").count();
-  if (!score.includes("%") || matrixRows !== 3) {
-    throw new Error(`Invalid validation score/matrix: ${score} / ${matrixRows}`);
+  const ridgeAccuracy = Number(score.replace("%", "").replace(",", ".")) / 100;
+  if (!(ridgeAccuracy > .53 && ridgeAccuracy < .61) || matrixRows !== 3) {
+    throw new Error(`Invalid pretrained Ridge validation score/matrix: ${score} / ${matrixRows}`);
   }
   await page.locator("#model-select").selectOption("centroid");
   if (!(await page.locator("#validation-results").isHidden())) {
@@ -42,7 +47,7 @@ try {
   await page.screenshot({path:"build/ruw-step3-desktop.png",fullPage:true});
   await page.setViewportSize({width:390,height:844});
   await page.screenshot({path:"build/ruw-step3-mobile.png",fullPage:true});
-  console.log("BROWSER_SMOKE_SUCCESS",JSON.stringify({validationScore:score,testTotal,samples,matrixRows,matrix2,errors}));
+  console.log("BROWSER_SMOKE_SUCCESS",JSON.stringify({ridgeValidationScore:score,testTotal,samples,matrixRows,matrix2,errors}));
   if (errors.length) throw new Error(`Unexpected browser console errors: ${errors.join(" | ").slice(0,700)}`);
 } finally {
   await browser.close();

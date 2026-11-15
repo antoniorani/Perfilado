@@ -1,0 +1,23 @@
+name: Verify browser Ridge model against scikit-learn
+on:
+  push:
+    branches: [feat/ruw-better-classifier]
+    paths:
+      - src/ruw-ridge.js
+      - scripts/verify-ruw-ridge.mjs
+      - data/ruw-joint-ridge-v1.json
+      - .github/workflows/verify-ruw-ridge.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check exact original RUW data and model compatibility
+        run: node scripts/verify-ruw-ridge.mjs

@@ -1,0 +1,27 @@
+name: Benchmark joint RUW stance classifier
+on:
+  push:
+    branches: [feat/ruw-better-classifier]
+    paths:
+      - scripts/benchmark-ruw-joint.py
+      - .github/workflows/benchmark-ruw-joint.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node scripts/benchmark-ruw-data.mjs
+      - run: python3 -m pip install --break-system-packages -q "scikit-learn>=1.5,<1.9"
+      - run: python3 scripts/benchmark-ruw-joint.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruw-joint-validation-benchmark
+          path: build/ruw-multi-target-results.json
+          retention-days: 14

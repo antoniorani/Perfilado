@@ -2,10 +2,12 @@ name: Browser smoke test RUW
 
 on:
   push:
-    branches: [feat/paso3-ruw-textos]
+    branches: [feat/paso3-ruw-textos, feat/ruw-better-classifier]
     paths:
       - textos.html
       - src/step3.js
+      - src/ruw-ridge.js
+      - data/ruw-joint-ridge-v1.json
       - assets/textos.css
       - scripts/browser-smoke.mjs
       - .github/workflows/browser-smoke-ruw.yml
