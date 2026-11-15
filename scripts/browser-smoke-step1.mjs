@@ -56,6 +56,13 @@ try {
   if (await page.locator("#zone-chart, #age-chart").count()) {
     throw new Error("Fixed distribution charts should have been removed");
   }
+  const selectorLabels = await page.locator("#distribution-select option").allTextContents();
+  if (selectorLabels.join("|") !== "Zona|Edad|Idioma") {
+    throw new Error("Distribution labels should not include ficticia: "+selectorLabels.join("|"));
+  }
+  if ((await page.locator("#distribution-title").textContent()).includes("ficticia")) {
+    throw new Error("Default distribution heading still contains ficticia");
+  }
   await page.locator("#distribution-select").selectOption("language");
   const language = await page.locator("#distribution-title").textContent();
   if (!language.includes("idioma") || await page.locator("#distribution-chart .chart-line").count() !== 5) {

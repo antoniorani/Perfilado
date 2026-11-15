@@ -3,9 +3,9 @@ import { setupAnswers } from "./answers.js";
 
 const PAGE_SIZE = 10;
 const DISTRIBUTIONS = {
-  zone: { title: "Perfiles por zona ficticia", key: "byZone" },
-  age: { title: "Perfiles por tramo de edad ficticia", key: "byAge" },
-  language: { title: "Perfiles por idioma ficticio", key: "byLanguage" },
+  zone: { title: "Perfiles por zona", key: "byZone" },
+  age: { title: "Perfiles por tramo de edad", key: "byAge" },
+  language: { title: "Perfiles por idioma", key: "byLanguage" },
 };
 const formatter = new Intl.NumberFormat("es-ES");
 const $ = (selector) => document.querySelector(selector);
