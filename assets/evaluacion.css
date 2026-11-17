@@ -60,7 +60,7 @@
 .final-result-track span { display: block; height: 100%; width: 42.4%; background: #5c9e80; border-radius: inherit; }
 .final-result-secondary { border-top: 1px solid #cfded1; padding-top: 19px; }
 .final-result-secondary strong { display: block; color: #3e6552; font-size: 1.85rem; letter-spacing: -.055em; font-variant-numeric: tabular-nums; margin-top: 5px; }
-.final-method, .final-law {
+.final-method {
   margin-top: 14px;
   background: #fff;
   border: 1px solid #e0e7df;
@@ -68,13 +68,8 @@
   padding: 18px 23px;
   color: #5c7165;
 }
-.final-method summary, .final-law summary { cursor: pointer; font-size: .87rem; font-weight: 760; color: #365d4d; }
-.final-method p, .final-law p { font-size: .82rem; line-height: 1.75; margin: 15px 0 0; }
-.final-law a { color: #2e7156; text-underline-offset: 3px; }
-.final-impact { background: #fff; border: 1px solid #dce4de; padding: 29px 32px; border-radius: 13px; }
-.final-impact p { color: #576d61; font-size: .92rem; line-height: 1.8; max-width: 970px; }
-.final-impact p:last-child { margin: 0; }
-.final-impact strong { color: #3c594b; }
+.final-method summary { cursor: pointer; font-size: .87rem; font-weight: 760; color: #365d4d; }
+.final-method p { font-size: .82rem; line-height: 1.75; margin: 15px 0 0; }
 .page-final .question-section { margin-top: 10px; }
 @media (max-width: 850px) {
   .final-sequence { grid-template-columns: 1fr; }
@@ -85,7 +80,6 @@
   .page-final .data-intro { padding-bottom: 26px; }
   .final-context { margin-bottom: 55px; }
   .final-section { margin-bottom: 58px; }
-  .final-sequence > div, .final-sliders, .final-simulation-results, .final-impact { padding: 22px; }
-  .final-result-main > strong { font-size: 3.7rem; }
-  .final-method, .final-law { padding: 17px 19px; }
+  .final-sequence > div, .final-sliders, .final-simulation-results,   .final-result-main > strong { font-size: 3.7rem; }
+  .final-method { padding: 17px 19px; }
 }

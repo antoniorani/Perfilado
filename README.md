@@ -226,7 +226,7 @@ El simulador calcula el producto de ambas tasas y su complemento, **únicamente 
 
 ### Preguntas y garantías
 
-El alumnado evalúa la acumulación de errores, las posibles consecuencias de usar los resultados contra personas, los marcos normativos según la finalidad (civil, policial, exclusivamente militar) y las salvaguardas necesarias. El material jurídico queda en un apartado desplegable para dar prioridad al relato y al ejercicio. Las respuestas a las preguntas **20–23** se conservan automáticamente en el navegador mediante `src/answers.js`, sin mostrar controles de exportación.
+El alumnado evalúa la acumulación de errores y, en el informe final, razona las posibles consecuencias, los marcos normativos según la finalidad (civil, policial, exclusivamente militar) y las salvaguardas necesarias. Las respuestas a las preguntas **20–23** se conservan automáticamente en el navegador mediante `src/answers.js`, sin mostrar controles de exportación.
 
 ## GitHub Pages
 
