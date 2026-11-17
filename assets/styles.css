@@ -111,6 +111,15 @@ a.journey-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); b
 .journey-card p { color: var(--ink-soft); font-size: .89rem; line-height: 1.55; }
 .journey-status { margin-top: auto; font-size: .71rem; font-weight: 800; letter-spacing: .04em; color: #b45535; }
 .journey-card-future .journey-status { color: #819091; }
+.access-section { padding: 84px 0; border-bottom: 1px solid var(--line); }
+.access-grid { display: grid; grid-template-columns: 1fr auto; gap: 80px; align-items: center; }
+.access-grid h2 { margin-bottom: 22px; }.access-grid h2 em { font-style: normal; color: var(--orange); }
+.access-copy { color: var(--ink-soft); font-size: 1.04rem; max-width: 560px; }
+.access-link { display: inline-flex; gap: 12px; margin-top: 10px; padding: 14px 20px; border-radius: 11px; background: #fff; border: 1px solid #dce3dc; color: var(--ink); font-weight: 760; font-size: clamp(.9rem, 1.6vw, 1.12rem); text-decoration: none; overflow-wrap: anywhere; transition: border-color .18s; }
+.access-link:hover { border-color: #f19a75; }
+.access-qr { margin: 0; padding: 22px 22px 16px; background: #fff; border: 1px solid #dce3dc; border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; }
+.access-qr img { display: block; width: min(280px, 70vw); height: auto; }
+.access-qr figcaption { margin-top: 10px; font-size: .62rem; font-weight: 820; letter-spacing: .14em; color: #6f8180; }
 .brief-section { background: #1d3d42; color: #f4f9f6; padding: 92px 0; }
 .brief-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 110px; align-items: start; }
 .brief-grid h2 { margin: 0; }.brief-grid em { color: var(--mint); font-style: normal; }
@@ -229,6 +238,7 @@ a.journey-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); b
   .hero-art { min-height: 490px; transform: none; max-width: 530px; margin: 0 auto; }
   .hero-copy h1 { font-size: clamp(3.4rem, 9vw, 5.5rem); }.hero-meta { margin-top: 32px; }
   .brief-grid { grid-template-columns: 1fr; gap: 27px; }
+  .access-section { padding: 60px 0; }.access-grid { grid-template-columns: 1fr; gap: 34px; }.access-qr { justify-self: center; }
   .brief-grid { gap: 20px; }.section-space { padding-block: 68px; }
   .section-title-row { display: block; }.section-aside { max-width: 700px; margin-top: 18px; }
   .provenance-grid, .charts-grid { grid-template-columns: 1fr; }

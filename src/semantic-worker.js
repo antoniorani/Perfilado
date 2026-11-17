@@ -72,10 +72,6 @@ self.onmessage = async ({data}) => {
       classifier = next;
       activeTarget = target;
       self.postMessage({id, type:"result", result:{predictions, dimension:next.dimension}});
-    } else if (type === "test") {
-      if (!classifier || activeTarget !== data.target) throw new Error("Entrena primero el modelo semántico");
-      const vectors = await encode(data.texts, id, "Prueba reservada");
-      self.postMessage({id, type:"result", result:{predictions:vectors.map(v => predictEmbedding(classifier, v).label)}});
     } else if (type === "manual") {
       if (!classifier || activeTarget !== data.target) throw new Error("Entrena primero el modelo semántico");
       const [vector] = await encode([data.text], id, "Texto de prueba", {remember:false});

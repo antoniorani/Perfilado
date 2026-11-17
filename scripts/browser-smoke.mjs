@@ -14,10 +14,16 @@ try {
   if (samples !== 5) throw new Error(`Expected 5 examples; got ${samples}`);
   // The default is an on-device semantic model, not an offline trained artifact.
   // For fast CI smoke testing, train the existing fully local TF-IDF baseline.
-  if (await page.locator("#model-select").inputValue() !== "semantic") {
+  if (!(await page.locator('input[name="model"][value="semantic"]').isChecked())) {
     throw new Error("The on-device semantic model should be the default");
   }
-  await page.locator("#model-select").selectOption("nb");
+  if (await page.locator('[data-models="semantic"].model-explainer').isHidden()) {
+    throw new Error("The selected model must show its visual explanation");
+  }
+  await page.locator('input[name="model"][value="nb"]').check({force:true});
+  if (await page.locator('[data-models="nb"].model-explainer').isHidden()) {
+    throw new Error("Naive Bayes explanation did not appear");
+  }
   await page.locator("#train-model").click();
   await page.getByText("Modelo entrenado:", {exact:false}).waitFor({timeout:45000});
   const score = (await page.locator("#metric-accuracy").textContent()).trim();
@@ -26,12 +32,18 @@ try {
   if (!(baselineAccuracy > .3 && baselineAccuracy < .8) || matrixRows !== 3) {
     throw new Error(`Invalid browser-trained Naive Bayes validation score/matrix: ${score} / ${matrixRows}`);
   }
-  await page.locator("#model-select").selectOption("centroid");
+  await page.locator('input[name="model"][value="centroid"]').check({force:true});
   if (!(await page.locator("#validation-results").isHidden())) {
     throw new Error("Model changes must invalidate old evaluation");
   }
   await page.locator("#target-select").selectOption("ukraine");
   await page.locator("#ngram-select").selectOption("2");
+  await page.locator("#split-range").fill("70");
+  const trainCount = Number((await page.locator("#split-train-count").textContent()).replaceAll(".",""));
+  const valCount = Number((await page.locator("#split-val-count").textContent()).replaceAll(".",""));
+  if (trainCount + valCount < 5800 || Math.abs(trainCount / (trainCount + valCount) - .7) > .01) {
+    throw new Error(`Student split was not applied: ${trainCount}/${valCount}`);
+  }
   await page.locator("#train-model").click();
   await page.getByText("Modelo entrenado:", {exact:false}).waitFor({timeout:30000});
   await page.locator("#manual-text").fill("Support peace and humanitarian help.");
@@ -39,12 +51,6 @@ try {
   if (!(await page.locator("#manual-result").textContent()).includes("Ucrania")) {
     throw new Error("Custom text classification did not use selected target");
   }
-  await page.locator("#reveal-test").click();
-  if (await page.locator("#test-results").isHidden()) throw new Error("Held-out test did not render");
-  const testTotal = await page.locator("#test-total").textContent();
-  if (Number(testTotal.replaceAll(".","")) < 1100) throw new Error(`Unexpected held-out test size: ${testTotal}`);
-  const matrix2 = await page.locator("#test-confusion tbody tr").count();
-  if (matrix2 !== 3) throw new Error("Missing 3x3 final test confusion matrix");
   // Real MiniLM + ONNX smoke test: small fixture, still trains in Chromium.
   // This checks the CDN, worker protocol and encoder tensor dimensions.
   const semantic = await page.evaluate(() => new Promise((resolve,reject) => {
@@ -85,7 +91,7 @@ try {
   await page.screenshot({path:"build/ruw-step3-desktop.png",fullPage:true});
   await page.setViewportSize({width:390,height:844});
   await page.screenshot({path:"build/ruw-step3-mobile.png",fullPage:true});
-  console.log("BROWSER_SMOKE_SUCCESS",JSON.stringify({baselineValidationScore:score,testTotal,samples,matrixRows,matrix2,errors}));
+  console.log("BROWSER_SMOKE_SUCCESS",JSON.stringify({baselineValidationScore:score,trainCount,valCount,samples,matrixRows,errors}));
   if (errors.length) throw new Error(`Unexpected browser console errors: ${errors.join(" | ").slice(0,700)}`);
 } finally {
   await browser.close();

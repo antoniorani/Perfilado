@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Paso 3 de Perfilado: clasificación RUW con embeddings semánticos MiniLM y entrenamiento supervisado en navegador, sin servidor de inferencia.">
+  <meta name="description" content="Paso 3 de Perfilado: exploración del corpus RUW y entrenamiento de clasificadores de texto en el navegador.">
   <meta name="theme-color" content="#f5f6f2">
   <title>Paso 3 · Análisis de textos | Perfilado</title>
   <link rel="stylesheet" href="./assets/styles.css">
@@ -46,29 +46,29 @@
     </section>
 
     <section class="section-space-tight" aria-labelledby="explore-title">
-      <div class="section-title-row"><div><p class="section-label">03.B / EXPLORAR EL CORPUS</p><h2 id="explore-title">¿Qué clases aparecen?</h2></div><p class="section-aside">Conservamos la partición original del corpus para evitar evaluar el modelo con los mismos textos utilizados para entrenarlo.</p></div>
+      <div class="section-title-row"><div><p class="section-label">03.B / EXPLORAR EL CORPUS</p><h2 id="explore-title">¿Qué clases aparecen?</h2></div><p class="section-aside">Exploramos el corpus completo. Todavía no separamos textos para entrenar y para evaluar: esa decisión la tomarás tú en el apartado 03.C.</p></div>
       <div id="ruw-status" class="text-status" role="status" aria-live="polite">
         <strong id="load-title">Cargando las publicaciones originales de RUW…</strong>
-        <p id="load-description">El navegador está solicitando los archivos originales de entrenamiento, validación y prueba.</p>
+        <p id="load-description">El navegador está solicitando los archivos originales del corpus.</p>
       </div>
       <div id="corpus-content" hidden>
         <div class="ruw-splits">
-          <div><span>Entrenamiento</span><strong id="count-train">4.200</strong><small>Para aprender el vocabulario y las clases</small></div>
-          <div><span>Validación</span><strong id="count-val">600</strong><small>Para elegir modelo y parámetros</small></div>
-          <div><span>Prueba reservada</span><strong id="count-test">1.200</strong><small>Para evaluar después de elegir el modelo</small></div>
+          <div><span>Publicaciones originales</span><strong id="count-original">6.000</strong><small>Tal como se publicaron en RUW</small></div>
+          <div><span>Repetidas excluidas</span><strong id="count-removed">—</strong><small>Mismo texto tras ocultar enlaces y usuarios</small></div>
+          <div><span>Publicaciones disponibles</span><strong id="count-total">—</strong><small>Textos únicos para explorar y entrenar</small></div>
         </div>
-        <p id="dedup-notice" class="text-data-note">Las coincidencias exactas entre conjuntos se excluyen de las métricas para reducir el riesgo de filtración entre entrenamiento y evaluación.</p>
+        <p class="text-data-note">Se eliminan los textos repetidos para que una misma publicación no pueda acabar a la vez en entrenamiento y en validación. No se modifican las etiquetas originales.</p>
         <div class="text-distributions">
-          <article class="chart-card"><div class="chart-heading"><h3>Postura expresada hacia Rusia</h3><span>ENTRENAMIENTO</span></div><div id="russia-bars" class="bar-chart"></div></article>
-          <article class="chart-card"><div class="chart-heading"><h3>Postura expresada hacia Ucrania</h3><span>ENTRENAMIENTO</span></div><div id="ukraine-bars" class="bar-chart"></div></article>
+          <article class="chart-card"><div class="chart-heading"><h3>Postura expresada hacia Rusia</h3><span>CORPUS COMPLETO</span></div><div id="russia-bars" class="bar-chart"></div></article>
+          <article class="chart-card"><div class="chart-heading"><h3>Postura expresada hacia Ucrania</h3><span>CORPUS COMPLETO</span></div><div id="ukraine-bars" class="bar-chart"></div></article>
         </div>
         <div class="text-pair-section">
-          <div><h3>Una publicación puede tener dos posturas</h3><p>Distribución conjunta de las etiquetas en el entrenamiento, sin interpretar la ideología personal de nadie.</p></div>
+          <div><h3>Una publicación puede tener dos posturas</h3><p>Distribución conjunta de las etiquetas en todo el corpus, sin interpretar la ideología personal de nadie.</p></div>
           <div id="joint-labels" class="joint-grid-wrap"></div>
         </div>
 
         <section class="text-browser" aria-labelledby="browse-title">
-          <div class="section-title-row"><div><p class="section-label">DATOS REALES / MUESTRA DE ENTRENAMIENTO</p><h2 id="browse-title">Leer antes de clasificar.</h2></div><p class="section-aside">Revisa cómo una misma frase puede resultar ambigua por ironía, citas, ausencia de contexto o formulaciones indirectas. Las publicaciones están principalmente en inglés y pueden incluir lenguaje ofensivo o afirmaciones no verificadas.</p></div>
+          <div class="section-title-row"><div><p class="section-label">DATOS REALES / CORPUS COMPLETO</p><h2 id="browse-title">Leer antes de clasificar.</h2></div><p class="section-aside">Revisa cómo una misma frase puede resultar ambigua por ironía, citas, ausencia de contexto o formulaciones indirectas. Las publicaciones están principalmente en inglés y pueden incluir lenguaje ofensivo o afirmaciones no verificadas.</p></div>
           <div class="text-browser-controls">
             <label class="field"><span>Filtrar por postura hacia</span><select id="explore-target"><option value="russia">Rusia</option><option value="ukraine">Ucrania</option></select></label>
             <label class="field"><span>Etiqueta</span><select id="explore-label"><option value="all">Todas</option><option value="AGAINST">En contra</option><option value="FAVOR">A favor</option><option value="NONE">Sin postura clara</option></select></label>
@@ -81,25 +81,104 @@
     </section>
 
     <section class="lab-section" id="text-laboratory" aria-labelledby="text-lab-title">
-      <div class="section-title-row"><div><p class="section-label">03.C / ENTRENAR UN MODELO REAL</p><h2 id="text-lab-title">De palabras a predicciones.</h2></div><p class="section-aside">Comparamos <strong>embeddings semánticos MiniLM</strong> con dos representaciones léxicas TF-IDF. <strong>Los tres clasificadores se entrenan al pulsar el botón, dentro de tu navegador</strong>. El encoder MiniLM ya viene preentrenado y se descarga desde Hugging Face; los textos no se envían a un servidor de inferencia.</p></div>
+      <div class="section-title-row"><div><p class="section-label">03.C / ENTRENAR UN MODELO REAL</p><h2 id="text-lab-title">De palabras a predicciones.</h2></div></div>
       <div class="text-process-grid">
-        <div><span>01</span><strong>Vectorizar</strong><small>Generar embeddings semánticos o vectores TF-IDF</small></div>
+        <div><span>01</span><strong>Vectorizar</strong><small>Convertir cada texto en una lista de números</small></div>
         <div><span>02</span><strong>Aprender</strong><small>Entrenar un clasificador supervisado de 3 clases en el navegador</small></div>
         <div><span>03</span><strong>Evaluar</strong><small>Comprobar errores en textos no utilizados para entrenar</small></div>
       </div>
       <div class="text-lab-panel">
-        <div class="text-lab-fields">
-          <label class="field"><span>Objetivo</span><select id="target-select"><option value="russia">Postura hacia Rusia</option><option value="ukraine">Postura hacia Ucrania</option></select></label>
-          <label class="field"><span>Clasificador</span><select id="model-select"><option value="semantic" selected>MiniLM + logística · embeddings</option><option value="nb">Naive Bayes · TF-IDF</option><option value="centroid">Prototipos por coseno · TF-IDF</option></select></label>
-          <label class="field"><span>Representación de texto</span><select id="ngram-select"><option value="1">Palabras individuales</option><option value="2">Palabras + pares consecutivos</option></select></label>
-          <label class="field"><span>Máximo de términos</span><select id="vocab-select"><option value="1000">1.000</option><option value="2500" selected>2.500</option><option value="5000">5.000</option></select></label>
-          <label class="field" id="alpha-field"><span>Suavizado de Naive Bayes</span><select id="alpha-select"><option value="0.1">0,1</option><option value="1" selected>1,0</option><option value="3">3,0</option></select></label>
-        </div>
-        <div class="text-lab-action"><p id="model-explanation">MiniLM genera embeddings de 384 dimensiones mediante ONNX ejecutado en el navegador; el clasificador se entrena aquí con RUW. La descarga inicial del encoder y el cálculo de miles de vectores pueden tardar. Nada se envía a una API de inferencia.</p><button id="train-model" class="button button-primary" type="button" disabled>Entrenar y validar <span aria-hidden="true">↗</span></button></div>
+        <ol class="train-steps">
+          <li class="train-step">
+            <div class="train-step-head"><span>PASO 1</span><h3>¿Qué quieres predecir?</h3><p>La etiqueta que el modelo aprenderá a reproducir.</p></div>
+            <div class="train-step-body"><label class="field"><span>Postura del texto</span><select id="target-select"><option value="russia">Postura hacia Rusia</option><option value="ukraine">Postura hacia Ucrania</option></select></label></div>
+          </li>
+          <li class="train-step">
+            <div class="train-step-head"><span>PASO 2</span><h3>¿Cómo divides los datos?</h3><p>El modelo aprende con unos textos y se evalúa con otros que nunca ha visto.</p></div>
+            <div class="train-step-body">
+              <label class="field split-field" for="split-range"><span>Porcentaje para entrenamiento: <output id="split-value" for="split-range">80 %</output></span><input id="split-range" type="range" min="50" max="90" step="5" value="80"></label>
+              <div class="split-bar" aria-hidden="true"><span id="split-train-bar" class="split-bar-train"></span><span id="split-val-bar" class="split-bar-val"></span></div>
+              <div class="split-legend"><span><i class="split-dot split-dot-train"></i>Entrenamiento · <strong id="split-train-count">—</strong> textos</span><span><i class="split-dot split-dot-val"></i>Validación · <strong id="split-val-count">—</strong> textos</span></div>
+              <p class="train-step-note">Los textos se barajan al azar con una semilla fija: la misma proporción produce siempre la misma división, para que podáis comparar resultados.</p>
+            </div>
+          </li>
+          <li class="train-step">
+            <div class="train-step-head"><span>PASO 3</span><h3>¿Qué modelo usas?</h3><p>Cada uno transforma y compara los textos de forma distinta.</p></div>
+            <div class="train-step-body">
+              <fieldset class="model-options"><legend class="sr-only">Clasificador</legend>
+                <label class="model-option"><input type="radio" name="model" value="semantic" checked><strong>MiniLM + logística</strong><small>Embeddings semánticos</small></label>
+                <label class="model-option"><input type="radio" name="model" value="nb"><strong>Naive Bayes</strong><small>TF-IDF · probabilidades</small></label>
+                <label class="model-option"><input type="radio" name="model" value="centroid"><strong>Prototipos por coseno</strong><small>TF-IDF · similitud</small></label>
+              </fieldset>
+              <figure class="model-explainer" data-models="semantic">
+                <svg viewBox="0 0 600 150" role="img" aria-labelledby="explain-semantic-title"><title id="explain-semantic-title">Texto, encoder MiniLM, vector de 384 números, regresión logística y probabilidad de cada postura</title>
+                  <defs><marker id="arrow-semantic" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7a998d"/></marker></defs>
+                  <g class="svg-kicker"><text x="46" y="30">TEXTO</text><text x="170" y="30">ENCODER</text><text x="276" y="30">VECTOR · 384</text><text x="385" y="30">CLASIFICADOR</text><text x="510" y="30">PROBABILIDADES</text></g>
+                  <rect x="0" y="45" width="92" height="64" rx="8" fill="#fff" stroke="#d6e5d9"/><text class="svg-quote" x="46" y="74">“Stop the</text><text class="svg-quote" x="46" y="90">war now…”</text>
+                  <rect x="120" y="42" width="100" height="70" rx="10" fill="#294c40"/><text x="170" y="74" fill="#fff" class="svg-strong">MiniLM</text><text x="170" y="92" fill="#b9e5d5" class="svg-small">preentrenado</text>
+                  <g fill="#4d9276"><rect x="252" y="46" width="44" height="4" rx="2"/><rect x="252" y="53" width="18" height="4" rx="2"/><rect x="252" y="60" width="36" height="4" rx="2"/><rect x="252" y="67" width="12" height="4" rx="2"/><rect x="252" y="74" width="48" height="4" rx="2"/><rect x="252" y="81" width="26" height="4" rx="2"/><rect x="252" y="88" width="40" height="4" rx="2"/><rect x="252" y="95" width="8" height="4" rx="2"/><rect x="252" y="102" width="30" height="4" rx="2"/></g>
+                  <rect x="330" y="42" width="110" height="70" rx="10" fill="#fef6ed" stroke="#ff7048"/><text x="385" y="70" class="svg-strong-dark">Regresión</text><text x="385" y="85" class="svg-strong-dark">logística</text><text x="385" y="101" fill="#b84b33" class="svg-small">se entrena aquí</text>
+                  <g class="svg-arrows"><path d="M96 77H116" marker-end="url(#arrow-semantic)"/><path d="M224 77H244" marker-end="url(#arrow-semantic)"/><path d="M306 77H326" marker-end="url(#arrow-semantic)"/><path d="M444 77H464" marker-end="url(#arrow-semantic)"/></g>
+                  <rect x="470" y="52" width="50" height="10" rx="3" fill="#c17c62"/><text x="526" y="61" class="svg-label">En contra 62 %</text>
+                  <rect x="470" y="72" width="8" height="10" rx="3" fill="#4d9276"/><text x="484" y="81" class="svg-label">A favor 10 %</text>
+                  <rect x="470" y="92" width="22" height="10" rx="3" fill="#a0aeb0"/><text x="498" y="101" class="svg-label">Sin postura 28 %</text>
+                </svg>
+                <figcaption><strong>Cómo funciona.</strong> Una red neuronal ya entrenada con millones de frases convierte cada publicación en 384 números que resumen su significado: frases distintas con sentido parecido quedan cerca. Aquí solo se entrena la última pieza, una regresión logística que aprende a separar las tres posturas. <em>Capta sinónimos y paráfrasis, pero es más lento y difícil de interpretar.</em></figcaption>
+              </figure>
+              <figure class="model-explainer" data-models="nb" hidden>
+                <svg viewBox="0 0 600 150" role="img" aria-labelledby="explain-nb-title"><title id="explain-nb-title">Probabilidad de cada palabra en cada postura, combinadas para elegir la clase más probable</title>
+                  <defs><marker id="arrow-nb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7a998d"/></marker></defs>
+                  <g class="svg-kicker"><text x="35" y="16">PALABRAS</text><text x="200" y="16">P(PALABRA | POSTURA)</text><text x="490" y="16">PUNTUACIÓN FINAL</text></g>
+                  <g class="svg-label-center"><text x="130" y="34">En contra</text><text x="200" y="34">A favor</text><text x="270" y="34">Sin postura</text></g>
+                  <g fill="#fff" stroke="#d6e5d9"><rect x="0" y="45" width="70" height="24" rx="6"/><rect x="0" y="80" width="70" height="24" rx="6"/><rect x="0" y="115" width="70" height="24" rx="6"/></g>
+                  <g class="svg-word"><text x="35" y="61">stop</text><text x="35" y="96">war</text><text x="35" y="131">peace</text></g>
+                  <g fill="#c17c62"><circle cx="130" cy="57" r="11"/><circle cx="130" cy="92" r="9"/><circle cx="130" cy="127" r="4"/></g>
+                  <g fill="#4d9276"><circle cx="200" cy="57" r="4"/><circle cx="200" cy="92" r="7"/><circle cx="200" cy="127" r="10"/></g>
+                  <g fill="#a0aeb0"><circle cx="270" cy="57" r="5"/><circle cx="270" cy="92" r="8"/><circle cx="270" cy="127" r="6"/></g>
+                  <path class="svg-arrows" d="M305 92H350" marker-end="url(#arrow-nb)"/><text x="328" y="82" class="svg-label-center">× P(postura)</text>
+                  <rect x="370" y="60" width="120" height="12" rx="3" fill="#c17c62"/><text x="496" y="70" class="svg-label">En contra ✓</text>
+                  <rect x="370" y="86" width="44" height="12" rx="3" fill="#4d9276"/><text x="420" y="96" class="svg-label">A favor</text>
+                  <rect x="370" y="112" width="70" height="12" rx="3" fill="#a0aeb0"/><text x="446" y="122" class="svg-label">Sin postura</text>
+                </svg>
+                <figcaption><strong>Cómo funciona.</strong> Calcula con qué frecuencia aparece cada palabra en los textos de cada postura. Ante un texto nuevo combina las probabilidades de sus palabras, suponiendo de forma «ingenua» que son independientes, y elige la postura más probable. El suavizado evita que una palabra no vista anule una clase. <em>Rápido e interpretable, pero ignora el orden y el contexto.</em></figcaption>
+              </figure>
+              <figure class="model-explainer" data-models="centroid" hidden>
+                <svg viewBox="0 0 600 180" role="img" aria-labelledby="explain-centroid-title"><title id="explain-centroid-title">Vectores de texto, un prototipo por postura y un texto nuevo asignado al prototipo con menor ángulo</title>
+                  <path d="M40 170H300M40 170V10" stroke="#cfdcd3"/>
+                  <g fill="#c17c62" opacity=".55"><circle cx="118.8" cy="156.1" r="4"/><circle cx="171.6" cy="122.1" r="4"/><circle cx="147.6" cy="147.1" r="4"/><circle cx="106.2" cy="147.2" r="4"/></g>
+                  <g fill="#4d9276" opacity=".55"><circle cx="70.8" cy="85.4" r="4"/><circle cx="62.6" cy="42" r="4"/><circle cx="74" cy="65.4" r="4"/><circle cx="54.6" cy="101.5" r="4"/></g>
+                  <g fill="#a0aeb0" opacity=".7"><circle cx="116.6" cy="105.7" r="4"/><circle cx="130" cy="62.8" r="4"/><circle cx="93.5" cy="110.5" r="4"/><circle cx="85.3" cy="130.6" r="4"/></g>
+                  <g stroke-width="1.5"><path d="M40 170L155.9 138.9" stroke="#c17c62"/><path d="M40 170L71.1 54.1" stroke="#4d9276"/><path d="M40 170L124.9 85.1" stroke="#a0aeb0"/><path d="M40 170L96.2 30.9" stroke="#ff7048" stroke-dasharray="4 4"/></g>
+                  <g stroke="#fff" stroke-width="2"><rect x="150" y="133" width="12" height="12" transform="rotate(45 155.9 138.9)" fill="#c17c62"/><rect x="65" y="48" width="12" height="12" transform="rotate(45 71.1 54.1)" fill="#4d9276"/><rect x="119" y="79" width="12" height="12" transform="rotate(45 124.9 85.1)" fill="#a0aeb0"/></g>
+                  <circle cx="96.2" cy="30.9" r="7" fill="#ff7048" stroke="#fff" stroke-width="2"/>
+                  <path d="M62.5 114.4A60 60 0 0 0 55.5 112" fill="none" stroke="#294c40" stroke-width="1.5"/><text x="68" y="106" class="svg-label">θ</text>
+                  <g class="svg-label"><rect x="340" y="22" width="11" height="11" transform="rotate(45 345.5 27.5)" fill="#c17c62"/><text x="360" y="32">Prototipo «En contra»</text>
+                    <rect x="340" y="47" width="11" height="11" transform="rotate(45 345.5 52.5)" fill="#4d9276"/><text x="360" y="57">Prototipo «A favor»</text>
+                    <rect x="340" y="72" width="11" height="11" transform="rotate(45 345.5 77.5)" fill="#a0aeb0"/><text x="360" y="82">Prototipo «Sin postura»</text>
+                    <circle cx="345.5" cy="103" r="6" fill="#ff7048"/><text x="360" y="107">Texto nuevo</text></g>
+                  <text x="340" y="140" class="svg-label">Menor ángulo θ = mayor similitud coseno</text><text x="340" y="158" class="svg-label">→ se asigna a <tspan fill="#326b52" font-weight="760">A favor</tspan></text>
+                </svg>
+                <figcaption><strong>Cómo funciona.</strong> Cada texto se representa como un vector TF-IDF, que da más peso a las palabras frecuentes en ese texto y raras en el resto. Se calcula un prototipo por postura (el promedio de sus textos) y cada texto nuevo se asigna al prototipo que apunta en la dirección más parecida. <em>Muy sencillo de explicar, pero una sola media puede no representar bien clases variadas.</em></figcaption>
+              </figure>
+            </div>
+          </li>
+          <li class="train-step">
+            <div class="train-step-head"><span>PASO 4</span><h3>Ajusta los parámetros</h3><p>Opciones específicas del modelo elegido.</p></div>
+            <div class="train-step-body">
+              <p class="train-step-note" data-models="semantic">MiniLM no tiene parámetros ajustables en esta práctica: el encoder ya viene preentrenado y la regresión logística usa una configuración fija.</p>
+              <div class="train-params" data-models="nb centroid" hidden>
+                <label class="field"><span>Unidades de texto</span><select id="ngram-select"><option value="1">Palabras individuales</option><option value="2">Palabras + pares consecutivos</option></select><small class="field-help">Con pares, «stop war» cuenta como una unidad propia.</small></label>
+                <label class="field"><span>Tamaño del vocabulario</span><select id="vocab-select"><option value="1000">1.000 términos</option><option value="2500" selected>2.500 términos</option><option value="5000">5.000 términos</option></select><small class="field-help">Solo se usan los términos más frecuentes del entrenamiento.</small></label>
+                <label class="field" data-models="nb"><span>Suavizado (α)</span><select id="alpha-select"><option value="0.1">0,1</option><option value="1" selected>1,0</option><option value="3">3,0</option></select><small class="field-help">Probabilidad mínima para palabras no vistas en una postura.</small></label>
+              </div>
+            </div>
+          </li>
+        </ol>
+        <div class="text-lab-action"><p id="train-summary">—</p><button id="train-model" class="button button-primary" type="button" disabled>Entrenar y validar <span aria-hidden="true">↗</span></button></div>
       </div>
       <div class="text-status" id="train-feedback" role="status" aria-live="polite"><strong id="train-status">Esperando los datos RUW…</strong><p id="train-description">Después de cargar el corpus, podrás entrenar el primer modelo.</p></div>
       <div id="validation-results" class="text-results" hidden>
-        <div class="section-title-row"><div><p class="section-label">VALIDACIÓN / EXPERIMENTO</p><h2>¿Qué aprende el modelo?</h2></div><p class="section-aside">Las cifras corresponden solo a la validación, no al conjunto reservado de prueba.</p></div>
+        <div class="section-title-row"><div><p class="section-label">VALIDACIÓN / EXPERIMENTO</p><h2>¿Qué aprende el modelo?</h2></div><p class="section-aside">Las cifras se calculan solo con los textos de validación, que el modelo no ha visto al entrenar.</p></div>
         <div class="text-kpis">
           <div><span>Exactitud</span><strong id="metric-accuracy">—</strong></div>
           <div><span>F1 macro</span><strong id="metric-macro">—</strong></div>
@@ -124,19 +203,13 @@
       </div>
     </section>
 
-    <section class="final-test-section" id="final-test" aria-labelledby="test-title" hidden>
-      <div><p class="section-label">03.D / PRUEBA RESERVADA</p><h2 id="test-title">Una última comprobación.</h2><p>Una vez elegidos el modelo y sus parámetros utilizando la validación, evalúalo sobre la parte de prueba de RUW. <strong>No utilices después estos resultados para elegir una nueva configuración</strong>: dejaría de ser una prueba independiente.</p></div>
-      <button id="reveal-test" type="button" class="button button-primary">Evaluar conjunto de prueba <span aria-hidden="true">↗</span></button>
-      <div id="test-results" hidden><div class="text-kpis"><div><span>Exactitud en prueba</span><strong id="test-accuracy">—</strong></div><div><span>F1 macro en prueba</span><strong id="test-macro">—</strong></div><div><span>Correctos</span><strong id="test-correct">—</strong></div><div><span>Textos evaluados</span><strong id="test-total">—</strong></div></div><div class="text-evaluation-grid"><div class="matrix-card"><h3>Matriz de confusión · prueba final</h3><p>Etiquetas reales frente a predicciones sobre textos reservados.</p><div id="test-confusion"></div></div><div class="matrix-card"><h3>Resultados por clase · prueba final</h3><p>Precisión, sensibilidad y F1 de cada categoría.</p><div id="test-classes"></div></div></div><div id="test-warning" class="text-data-note" role="status">Has abierto el conjunto reservado. Reentrenar y volver a mirarlo introduciría sesgo de selección.</div></div>
-    </section>
-
     <section class="question-section" id="preguntas">
-      <div class="question-head"><div><p class="section-label section-label-light">03.E / REFLEXIÓN</p><h2>Las palabras<br><em>no lo cuentan todo.</em></h2><p>Razona tus respuestas a partir de los datos reales y las matrices de confusión.</p></div><span class="question-count">13—19</span></div>
+      <div class="question-head"><div><p class="section-label section-label-light">03.D / REFLEXIÓN</p><h2>Las palabras<br><em>no lo cuentan todo.</em></h2><p>Razona tus respuestas a partir de los datos reales y las matrices de confusión.</p></div><span class="question-count">13—19</span></div>
       <div class="question-list">
         <div class="question-item"><label for="q13"><span>13</span> ¿Cuántas publicaciones hay en RUW y cómo se distribuyen las etiquetas? ¿Puede una publicación expresar posturas distintas hacia Rusia y hacia Ucrania?</label><textarea id="q13" rows="3" placeholder="Tu reflexión…"></textarea></div>
         <div class="question-item"><label for="q14"><span>14</span> Lee varios textos. ¿Qué dificultades presentan la ironía, las citas, el contexto ausente o una postura que no se expresa explícitamente? ¿Por qué podrían discrepar dos anotadores?</label><textarea id="q14" rows="3" placeholder="Tu reflexión…"></textarea></div>
         <div class="question-item"><label for="q15"><span>15</span> ¿Qué representa un vector TF-IDF y en qué se diferencia de un embedding facial o de un embedding semántico obtenido con una red neuronal? ¿Dos textos parecidos expresan siempre la misma postura?</label><textarea id="q15" rows="3" placeholder="Tu reflexión…"></textarea></div>
-        <div class="question-item"><label for="q16"><span>16</span> Elige objetivo, clasificador y representación. ¿Por qué entrenamos con unos textos y evaluamos con otros? ¿Para qué sirve el conjunto de validación?</label><textarea id="q16" rows="3" placeholder="Tu reflexión…"></textarea></div>
+        <div class="question-item"><label for="q16"><span>16</span> Elige objetivo, clasificador y representación. ¿Por qué entrenamos con unos textos y evaluamos con otros? ¿Cómo cambian los resultados si modificas el porcentaje de entrenamiento?</label><textarea id="q16" rows="3" placeholder="Tu reflexión…"></textarea></div>
         <div class="question-item"><label for="q17"><span>17</span> Analiza la matriz de confusión, la exactitud y la F1 macro. ¿Qué clases se confunden? ¿Por qué la exactitud global no es suficiente?</label><textarea id="q17" rows="3" placeholder="Tu reflexión…"></textarea></div>
         <div class="question-item"><label for="q18"><span>18</span> Cambia alguna configuración, examina errores y justifica si mejora la validación. ¿Qué datos adicionales serían útiles? ¿Podemos convertir la postura de un texto en una afirmación sobre las opiniones de quien lo escribió?</label><textarea id="q18" rows="3" placeholder="Tu reflexión…"></textarea></div>
         <div class="question-item"><label for="q19"><span>19</span> ¿Podemos reutilizar publicaciones públicas sin restricciones? ¿Qué riesgos surgen si inferimos opiniones políticas o vinculamos mensajes a personas identificadas? ¿Qué salvaguardas serían necesarias?</label><textarea id="q19" rows="3" placeholder="Tu reflexión…"></textarea></div>

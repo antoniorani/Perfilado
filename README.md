@@ -167,14 +167,9 @@ La galería `lfw-gallery-v3.pfg` usa una cabecera de versión nueva, conserva la
 
 La app carga automáticamente los tres CSV directamente del [repositorio RUW original](https://github.com/multi-target/RUW/tree/ecb2a4579197c5be03092a1b8fa21ead359809ce) a partir del commit fijo `ecb2a4579197c5be03092a1b8fa21ead359809ce`.
 
-| Partición de RUW | Registros originales | Registros utilizados tras descartar duplicados |
-| --- | ---: | ---: |
-| Entrenamiento | 4.200 | 4.095 |
-| Validación (`Dev`) | 600 | 599 |
-| Prueba (`Test`) | 1.200 | 1.187 |
-| **Total** | **6.000** | **5.881** |
+Los tres ficheros se unen en un único corpus de **6.000 publicaciones**: el laboratorio no impone la partición original. Se descartan los textos repetidos (tras ocultar enlaces, correos y usuarios), de modo que quedan **5.881 publicaciones únicas** y una misma publicación no puede aparecer a la vez en entrenamiento y en validación. Este filtro solo utiliza el texto, no las etiquetas, y las cifras originales permanecen visibles para que no se oculten los descartes.
 
-Las coincidencias textuales se excluyen con prioridad **prueba → validación → entrenamiento** para que un ejemplo aparezca como máximo en una partición. Este filtro solo utiliza el texto, no las etiquetas de prueba, y reduce el riesgo de contaminación de la evaluación. Las cifras originales permanecen visibles para que no se oculten los descartes.
+La exploración del apartado 03.B muestra **todo el corpus**. En el apartado 03.C el estudiante decide qué porcentaje se usa para entrenar (entre el 50 % y el 90 %); el resto se reserva para validación. Los textos se barajan con una semilla fija (`splitTrainValidation` en `src/ruw-data.js`), de modo que la misma proporción produce siempre la misma división.
 
 **No almacenamos ni versionamos una copia de los tuits ni sus autores en este repositorio**. Los textos se descargan desde la fuente y se muestran temporalmente en el navegador, retirando menciones de usuario, correos y URL antes de mostrarlos o modelarlos. Son publicaciones de terceros, algunas con lenguaje ofensivo o información no verificada, y **no podemos garantizar anonimización completa**. No se vinculan las publicaciones a las personas reales fotografiadas en LFW. El acceso a RUW depende de internet y del servidor de GitHub, y la reutilización del texto debe respetar los derechos y condiciones correspondientes de los autores y de la plataforma.
 
@@ -182,11 +177,10 @@ Las coincidencias textuales se excluyen con prioridad **prueba → validación �
 
 La aplicación **no usa puntuaciones inventadas**. En el paso 3 todos los clasificadores seleccionables se entrenan cuando el usuario pulsa «Entrenar y validar», directamente en su navegador:
 
-1. **MiniLM + regresión logística (opción inicial):** carga el encoder `Xenova/all-MiniLM-L6-v2`, que ya está preentrenado, mediante Transformers.js 3.8.1 y ONNX Runtime Web (WASM). Calcula embeddings de **384 dimensiones** de los textos de entrenamiento y validación. Entrena **desde cero, en un Web Worker**, una cabeza Softmax de tres clases usando mini-lotes y Adam. No se está entrenando desde cero el propio Transformer: únicamente el clasificador supervisado RUW.
+1. **MiniLM + regresión logística (opción inicial):** carga el encoder `Xenova/all-MiniLM-L6-v2`, que ya está preentrenado, mediante Transformers.js 3.8.1 y ONNX Runtime Web (WASM). Calcula embeddings de **384 dimensiones** de los textos de entrenamiento y validación elegidos por el estudiante. Entrena **desde cero, en un Web Worker**, una cabeza Softmax de tres clases usando mini-lotes y Adam. No se está entrenando desde cero el propio Transformer: únicamente el clasificador supervisado RUW.
 2. **Naive Bayes o centroides TF-IDF:** construyen el vocabulario exclusivamente con el entrenamiento y ajustan sus parámetros en memoria en el navegador.
-3. Se elige la postura del texto **respecto a Rusia o Ucrania**. La puntuación de validación se calcula con el conjunto oficial `Dev`, sin usar sus etiquetas para entrenar. Se muestran exactitud, **F1 macro**, matriz de confusión, métricas por clase y errores.
-4. **Prueba reservada:** no se calcula su embedding ni se utiliza ninguna etiqueta hasta que se pulsa «Evaluar conjunto de prueba». Es un test independiente, nunca una métrica para seleccionar hiperparámetros.
-5. **Predicción manual:** el texto introducido por el estudiante se vectoriza localmente con el mismo encoder o vectorizador; no se envía a una API de inferencia.
+3. El estudiante sigue cuatro pasos: elige la postura a predecir (**Rusia o Ucrania**), el porcentaje de entrenamiento, el modelo (con una explicación visual de su funcionamiento) y sus parámetros. La validación se calcula con los textos que no se han utilizado para entrenar. Se muestran exactitud, **F1 macro**, matriz de confusión, métricas por clase y errores.
+4. **Predicción manual:** el texto introducido por el estudiante se vectoriza localmente con el mismo encoder o vectorizador; no se envía a una API de inferencia.
 
 El Web Worker mantiene **textos y embeddings solo en memoria durante la sesión**; no persiste los vectores en GitHub ni en almacenamiento del navegador. La primera ejecución requiere descargar código de jsDelivr y archivos de modelo de Hugging Face: hay conexiones a terceros **para obtener los pesos**, no para enviar las publicaciones a inferencia remota. Si el navegador está sin conexión o no puede descargar el modelo, siguen disponibles las alternativas TF-IDF. La extracción de miles de embeddings en WASM puede tardar considerablemente en equipos poco potentes.
 
@@ -205,7 +199,7 @@ En la auditoría con el corpus original, vocabulario de 2.500 términos y unigra
 | Rusia | **Ridge conjunto preentrenado** | **56,8 %** | **53,9 %** |
 | Ucrania | **Ridge conjunto preentrenado** | **55,6 %** | **53,2 %** |
 
-El modelo Ridge conjunto histórico (que ya no aparece como opción para entrenar en la web) considera las combinaciones `AGAINST/FAVOR/NONE` respecto a ambos objetivos en lugar de predecir dos etiquetas de forma aislada. Utiliza TF-IDF de palabras hasta trigramas y de caracteres dentro de palabra (`char_wb`), con regularización Ridge (`alpha=1`). Fue seleccionado **solo sobre los 599 textos de validación**, por lo que las cifras mostradas no son resultados de una prueba final independiente. El alumno puede reservar los 1.187 textos de prueba para evaluarlo después.
+El modelo Ridge conjunto histórico (que ya no aparece como opción para entrenar en la web) considera las combinaciones `AGAINST/FAVOR/NONE` respecto a ambos objetivos en lugar de predecir dos etiquetas de forma aislada. Utiliza TF-IDF de palabras hasta trigramas y de caracteres dentro de palabra (`char_wb`), con regularización Ridge (`alpha=1`). Fue seleccionado **solo sobre los 599 textos de validación**, por lo que las cifras mostradas no son resultados de una prueba final independiente.
 
 El artefacto histórico `data/ruw-joint-ridge-v1.json` (~2,4 MB), mantenido para auditoría y no cargado por el laboratorio interactivo, contiene **únicamente vocabulario, IDF, pesos cuantizados e información de validación**, nunca las publicaciones originales. La generación es reproducible mediante `node scripts/benchmark-ruw-data.mjs` y `python3 scripts/export-ruw-joint-model.py` (requiere scikit-learn). La verificación `node scripts/verify-ruw-ridge.mjs` compara el modelo de scikit-learn con JavaScript en los mismos 599 textos: coincidencia en **597/599 predicciones conjuntas**, y exactitudes equivalentes para ambos objetivos tras cuantizar los pesos. El modelo NO es una inferencia fiable de las opiniones de una persona.
 

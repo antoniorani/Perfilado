@@ -1,4 +1,4 @@
-import { loadRUW, LABELS, LABEL_NAMES, TARGETS, labelCounts, normalizedText } from "./ruw-data.js";
+import { loadRUW, LABELS, LABEL_NAMES, TARGETS, labelCounts, normalizedText, splitTrainValidation } from "./ruw-data.js";
 import {
   MODEL_NAMES, buildVectorizer, trainClassifier, evaluateClassifier, evaluatePredictions, baselineLabel,
 } from "./text-classifier.js";
@@ -17,19 +17,22 @@ const controls = {
   content:$("#corpus-content"), train:$("#train-model"),
   trainStatus:$("#train-status"), trainDescription:$("#train-description"),
   trainFeedback:$("#train-feedback"), results:$("#validation-results"),
-  target:$("#target-select"), model:$("#model-select"), ngrams:$("#ngram-select"),
-  vocab:$("#vocab-select"), alpha:$("#alpha-select"), alphaField:$("#alpha-field"),
+  target:$("#target-select"), models:document.querySelectorAll('input[name="model"]'),
+  ngrams:$("#ngram-select"), vocab:$("#vocab-select"), alpha:$("#alpha-select"),
+  split:$("#split-range"), splitValue:$("#split-value"), splitTrainBar:$("#split-train-bar"),
+  splitValBar:$("#split-val-bar"), splitTrainCount:$("#split-train-count"), splitValCount:$("#split-val-count"),
   exploreTarget:$("#explore-target"), exploreLabel:$("#explore-label"), exploreQuery:$("#explore-query"),
   browse:$("#tweet-samples"), browseSummary:$("#explore-summary"), browseCount:$("#explore-counter"),
   browsePrev:$("#explore-prev"), browseNext:$("#explore-next"),
   errorFilter:$("#error-filter"), errorList:$("#error-examples"), errorSummary:$("#error-summary"),
   errorCount:$("#error-counter"), errorPrev:$("#error-prev"), errorNext:$("#error-next"),
-  testSection:$("#final-test"), testButton:$("#reveal-test"), testResults:$("#test-results"),
   manual:$("#manual-text"), manualButton:$("#manual-run"), manualResult:$("#manual-result"),
-  modelExplanation:$("#model-explanation"),
+  summary:$("#train-summary"),
 };
 
 let corpus=null;
+let rows=[];
+let split=null;
 let model=null;
 let validation=null;
 let selectedTarget="russia";
@@ -37,7 +40,6 @@ let exploreRows=[];
 let explorePage=1;
 let reviewRows=[];
 let reviewPage=1;
-let testWasViewed=false;
 let configurationVersion=0;
 let semanticWorker=null;
 let semanticRequestId=0;
@@ -100,7 +102,7 @@ function drawBars(container, counts) {
 }
 function renderJointLabels() {
   const counts=Object.fromEntries(LABELS.map(a=>[a,Object.fromEntries(LABELS.map(b=>[b,0]))]));
-  for(const row of corpus.train) counts[row.russia][row.ukraine] += 1;
+  for(const row of rows) counts[row.russia][row.ukraine] += 1;
   const table=element("table","ruw-matrix joint-matrix");
   const head=element("thead");
   const top=element("tr");
@@ -120,14 +122,12 @@ function renderJointLabels() {
 }
 
 function renderCorpus() {
-  $("#count-train").textContent=number.format(corpus.originalCounts.train);
-  $("#count-val").textContent=number.format(corpus.originalCounts.val);
-  $("#count-test").textContent=number.format(corpus.originalCounts.test);
-  const excluded=Object.values(corpus.removed).reduce((sum,n)=>sum+n,0);
-  $("#dedup-notice").textContent=
-    `Particiones originales: 4.200 / 600 / 1.200. Se excluyeron ${excluded} publicaciones repetidas tras el filtrado de identificadores (${corpus.removed.train} del entrenamiento, ${corpus.removed.val} de validación y ${corpus.removed.test} de prueba). Quedan ${number.format(corpus.train.length)} / ${number.format(corpus.val.length)} / ${number.format(corpus.test.length)} ejemplos independientes. No se modifican las etiquetas originales.`;
-  drawBars($("#russia-bars"),labelCounts(corpus.train,"russia"));
-  drawBars($("#ukraine-bars"),labelCounts(corpus.train,"ukraine"));
+  const sum=(counts)=>Object.values(counts).reduce((total,n)=>total+n,0);
+  $("#count-original").textContent=number.format(sum(corpus.originalCounts));
+  $("#count-removed").textContent=number.format(sum(corpus.removed));
+  $("#count-total").textContent=number.format(rows.length);
+  drawBars($("#russia-bars"),labelCounts(rows,"russia"));
+  drawBars($("#ukraine-bars"),labelCounts(rows,"ukraine"));
   renderJointLabels();
 }
 
@@ -156,7 +156,7 @@ function tweetCard(row, { truth=false, predicted=null, selected=null }={}) {
 function updateExploreFilter() {
   const term=normalizedText(controls.exploreQuery.value);
   const target=controls.exploreTarget.value,label=controls.exploreLabel.value;
-  exploreRows=corpus.train.filter((row)=>
+  exploreRows=rows.filter((row)=>
     (label==="all" || row[target]===label) && (!term || normalizedText(row.text).includes(term)));
   explorePage=1;
   renderExplore();
@@ -260,9 +260,8 @@ function renderReviews() {
 }
 
 function showValidation() {
-  const majority=baselineLabel(corpus.train,selectedTarget);
-  const baseline=corpus.val.length
-    ? corpus.val.filter(row=>row[selectedTarget]===majority).length/corpus.val.length : 0;
+  const majority=baselineLabel(split.train,selectedTarget);
+  const baseline=split.val.filter(row=>row[selectedTarget]===majority).length/split.val.length;
   $("#metric-accuracy").textContent=percent(validation.accuracy);
   $("#metric-macro").textContent=percent(validation.macroF1);
   $("#metric-baseline").textContent=percent(baseline);
@@ -272,37 +271,45 @@ function showValidation() {
   featureTerms();
   updateReviews();
   controls.results.hidden=false;
-  controls.testSection.hidden=false;
-  controls.testResults.hidden=true;
-  controls.testButton.disabled=false;
   controls.manualResult.textContent="";
 }
 
-function modelChanged() {
+const selectedModel=()=>[...controls.models].find(input=>input.checked).value;
+
+function renderSplit() {
+  const share=Number(controls.split.value);
+  controls.splitValue.textContent=`${share} %`;
+  controls.splitTrainBar.style.flexGrow=share;
+  controls.splitValBar.style.flexGrow=100-share;
+  split=rows.length ? splitTrainValidation(rows,share/100) : null;
+  controls.splitTrainCount.textContent=split ? number.format(split.train.length) : "—";
+  controls.splitValCount.textContent=split ? number.format(split.val.length) : "—";
+}
+
+function configurationChanged() {
   configurationVersion++;
   model=null;
   validation=null;
   controls.results.hidden=true;
-  controls.testSection.hidden=true;
-  controls.testResults.hidden=true;
-  const semantic=controls.model.value==="semantic";
-  controls.alphaField.hidden=controls.model.value!=="nb";
-  for(const input of [controls.ngrams,controls.vocab]) input.disabled=semantic;
-  controls.train.textContent="Entrenar y validar →";
-  controls.modelExplanation.textContent=semantic
-    ? "Embeddings semánticos: MiniLM (encoder ya preentrenado) convierte las publicaciones en vectores de 384 dimensiones mediante ONNX en este navegador. Después se entrena aquí, desde cero, un clasificador supervisado con RUW. La primera descarga y el cálculo de miles de embeddings pueden tardar; el corpus y los vectores permanecen en memoria, sin enviarse a una API de inferencia."
-    : "Modelo léxico: tanto el vocabulario TF-IDF como el clasificador se ajustan en este navegador con la partición de entrenamiento de RUW. Puedes cambiar la representación y comparar resultados.";
-  controls.trainStatus.textContent="Configuración modificada";
-  controls.trainDescription.textContent=testWasViewed
-    ? "El conjunto de prueba ya se ha consultado. Un nuevo ajuste a partir de él puede sesgar las conclusiones."
-    : "Pulsa el botón para evaluar esta configuración en validación.";
+  const chosenModel=selectedModel();
+  for(const node of document.querySelectorAll("[data-models]")) {
+    node.hidden=!node.dataset.models.split(" ").includes(chosenModel);
+  }
+  renderSplit();
+  controls.summary.textContent=split
+    ? `Entrenarás «${MODEL_NAMES[chosenModel]}» para predecir la postura hacia ${TARGETS[controls.target.value]} con ${number.format(split.train.length)} textos, y lo evaluarás con ${number.format(split.val.length)} textos de validación que no verá durante el entrenamiento.`
+    : "Cuando se cargue el corpus podrás entrenar esta configuración.";
+  if(!corpus)return;
+  controls.trainStatus.textContent="Configuración lista";
+  controls.trainDescription.textContent="Pulsa «Entrenar y validar» para evaluar esta configuración.";
 }
 
 async function train() {
   if(!corpus)return;
   controls.train.disabled=true;
   const version=configurationVersion;
-  const chosenModel=controls.model.value;
+  const chosenModel=selectedModel();
+  const {train:trainRows,val:valRows}=split;
   const target=controls.target.value;
   controls.trainStatus.textContent=chosenModel==="semantic"
     ? "Calculando embeddings y entrenando en el navegador…"
@@ -314,17 +321,17 @@ async function train() {
     if(chosenModel==="semantic") {
       const outcome=await runSemantic("train",{
         target,
-        train:corpus.train.map(row=>({text:row.text,label:row[target]})),
-        val:corpus.val.map(row=>row.text),
+        train:trainRows.map(row=>({text:row.text,label:row[target]})),
+        val:valRows.map(row=>row.text),
       },message=>{if(version===configurationVersion)controls.trainDescription.textContent=message;});
       nextModel={name:"semantic",target,vectorizer:{size:outcome.dimension}};
-      nextValidation=evaluatePredictions(corpus.val,target,outcome.predictions);
+      nextValidation=evaluatePredictions(valRows,target,outcome.predictions);
     } else {
-      const vectorizer=buildVectorizer(corpus.train,
+      const vectorizer=buildVectorizer(trainRows,
         {ngrams:Number(controls.ngrams.value),maxFeatures:Number(controls.vocab.value)});
-      nextModel=trainClassifier(corpus.train,target,chosenModel,vectorizer,
+      nextModel=trainClassifier(trainRows,target,chosenModel,vectorizer,
         {alpha:Number(controls.alpha.value)});
-      nextValidation=evaluateClassifier(nextModel,corpus.val,target);
+      nextValidation=evaluateClassifier(nextModel,valRows,target);
     }
     if(version!==configurationVersion)return;
     selectedTarget=target;
@@ -332,10 +339,9 @@ async function train() {
     validation=nextValidation;
     controls.trainStatus.textContent="Modelo entrenado: "+MODEL_NAMES[model.name];
     controls.trainDescription.textContent=
-      number.format(corpus.train.length)+" textos de entrenamiento y "+number.format(corpus.val.length)+
+      number.format(trainRows.length)+" textos de entrenamiento y "+number.format(valRows.length)+
       " de validación. "+number.format(model.vectorizer.size)+" características. F1 macro en validación: "+
-      percent(validation.macroF1)+"." +
-      (testWasViewed ? " Aviso: la prueba final ya fue consultada; no la utilices para ajustar parámetros." : "");
+      percent(validation.macroF1)+".";
     showValidation();
     controls.results.scrollIntoView({behavior:"smooth",block:"start"});
   } catch(error) {
@@ -346,44 +352,8 @@ async function train() {
       ? ". La primera carga del encoder requiere acceso a cdn.jsdelivr.net y huggingface.co; comprueba la conexión y vuelve a intentarlo."
       : "");
     controls.results.hidden=true;
-    controls.testSection.hidden=true;
   } finally {
     controls.train.disabled=false;
-  }
-}
-async function evaluateFinalTest() {
-  if(!model || !corpus)return;
-  const version=configurationVersion;
-  controls.testButton.disabled=true;
-  const warning=$("#test-warning");
-  try{
-    const result=model.name==="semantic"
-      ? evaluatePredictions(corpus.test,selectedTarget,
-        (await runSemantic("test",{target:selectedTarget,texts:corpus.test.map(row=>row.text)},
-          message=>{if(version===configurationVersion){
-            controls.trainStatus.textContent="Evaluando el conjunto reservado…";
-            controls.trainDescription.textContent=message;
-          }})).predictions)
-      : evaluateClassifier(model,corpus.test,selectedTarget);
-    if(version!==configurationVersion)return;
-    testWasViewed=true;
-    $("#test-accuracy").textContent=percent(result.accuracy);
-    $("#test-macro").textContent=percent(result.macroF1);
-    $("#test-correct").textContent=number.format(result.correct);
-    $("#test-total").textContent=number.format(result.total);
-    classConfusion($("#test-confusion"),result);
-    classMetrics($("#test-classes"),result);
-    controls.testResults.hidden=false;
-    controls.trainStatus.textContent="Evaluación reservada completada";
-    warning.textContent=
-      "Resultados de prueba para "+TARGETS[selectedTarget]+", usando "+MODEL_NAMES[model.name]+
-      ". Estos "+number.format(result.total)+" textos no se emplearon para entrenar o validar."+
-      " Cualquier elección posterior basada en esta puntuación introduciría sesgo.";
-  } catch(error) {
-    console.error("Error de prueba reservada:",error);
-    controls.trainStatus.textContent="No se pudo evaluar la prueba reservada";
-    controls.trainDescription.textContent=error.message;
-    if(version===configurationVersion)controls.testButton.disabled=false;
   }
 }
 async function predictManual() {
@@ -422,18 +392,19 @@ async function init() {
   controls.exploreQuery.addEventListener("input",updateExploreFilter);
   controls.browsePrev.addEventListener("click",()=>{if(explorePage>1){explorePage-=1;renderExplore();}});
   controls.browseNext.addEventListener("click",()=>{if(explorePage*PER_PAGE<exploreRows.length){explorePage+=1;renderExplore();}});
-  for(const field of [controls.target,controls.model,controls.ngrams,controls.vocab,controls.alpha]) {
-    field.addEventListener("change",modelChanged);
+  for(const field of [controls.target,...controls.models,controls.ngrams,controls.vocab,controls.alpha]) {
+    field.addEventListener("change",configurationChanged);
   }
+  controls.split.addEventListener("input",configurationChanged);
   controls.train.addEventListener("click",train);
-  controls.testButton.addEventListener("click",evaluateFinalTest);
   controls.manualButton.addEventListener("click",predictManual);
   controls.errorFilter.addEventListener("change",updateReviews);
   controls.errorPrev.addEventListener("click",()=>{if(reviewPage>1){reviewPage-=1;renderReviews();}});
   controls.errorNext.addEventListener("click",()=>{if(reviewPage*PER_PAGE<reviewRows.length){reviewPage+=1;renderReviews();}});
-  modelChanged();
+  configurationChanged();
   try{
     corpus=await loadRUW();
+    rows=[...corpus.train,...corpus.val,...corpus.test];
     renderCorpus();
     controls.content.hidden=false;
     controls.train.disabled=false;
@@ -441,8 +412,9 @@ async function init() {
     controls.loadTitle.textContent="Corpus RUW cargado correctamente";
     controls.loadDescription.textContent=
       "6.000 publicaciones originales, con etiquetas de Rusia y Ucrania. El entrenamiento se ejecuta en el navegador; el modelo semántico descarga primero un encoder público.";
+    configurationChanged();
     controls.trainStatus.textContent="Datos preparados para entrenar";
-    controls.trainDescription.textContent="Elige el objetivo y los parámetros del modelo; después pulsa «Entrenar y validar».";
+    controls.trainDescription.textContent="Sigue los cuatro pasos y pulsa «Entrenar y validar».";
     updateExploreFilter();
   } catch(error) {
     console.error("No se pudo obtener el corpus RUW:",error);

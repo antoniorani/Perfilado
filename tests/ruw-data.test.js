@@ -1,6 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseCSV, parseRUWSplit, redactTweet, prepareRUW, labelCounts, normalizedText } from "../src/ruw-data.js";
+import { parseCSV, parseRUWSplit, redactTweet, prepareRUW, labelCounts, normalizedText, splitTrainValidation } from "../src/ruw-data.js";
+
+test("student split is reproducible, disjoint and covers the whole corpus", () => {
+  const rows=Array.from({length:100},(_,i)=>({id:i}));
+  const first=splitTrainValidation(rows,.8);
+  assert.equal(first.train.length,80);
+  assert.equal(first.val.length,20);
+  assert.deepEqual(splitTrainValidation(rows,.8),first);
+  const ids=[...first.train,...first.val].map(r=>r.id).sort((a,b)=>a-b);
+  assert.deepEqual(ids,rows.map(r=>r.id));
+  assert.notDeepEqual(first.train.map(r=>r.id),rows.slice(0,80).map(r=>r.id));
+  assert.throws(()=>splitTrainValidation(rows,1),/inválida/);
+});
 
 test("RFC-4180 parser supports comma, quoted newline, escapes and CRLF", () => {
   const csv='Text,Value\r\n"one, two","a ""quote"""\r\n"two\nlines",NONE\r\n';
