@@ -15,13 +15,12 @@
 .stance-against { background: #fbe8df; color: #ae5135; }
 .stance-favor { background: #dceee4; color: #326b52; }
 .stance-none { background: #e8ecec; color: #5e6e71; }
-.ruw-splits { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); border-radius: 14px; background: #fff; border: 1px solid #dce4dd; overflow: hidden; margin-top: 25px; }
+.ruw-splits { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); border-radius: 14px; background: #fff; border: 1px solid #dce4dd; overflow: hidden; margin: 25px 0 17px; }
 .ruw-splits > div { display: flex; flex-direction: column; gap: 5px; padding: 25px 28px; }
 .ruw-splits > div + div { border-left: 1px solid #e3e9e5; }
 .ruw-splits span { color: #607872; font-size: .79rem; font-weight: 720; }
 .ruw-splits strong { color: #243b35; font-size: 2.35rem; line-height: 1.2; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
 .ruw-splits small { color: #748783; font-size: .76rem; line-height: 1.48; }
-.text-data-note { border-left: 3px solid #78a392; background: #eaf1eb; border-radius: 2px 10px 10px 2px; padding: 15px 18px; color: #506c62; font-size: .8rem; line-height: 1.7; margin: 18px 0 24px; }
 .text-distributions { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .text-distributions .chart-card { padding: 25px 27px; }
 .text-distributions .chart-line { grid-template-columns: 106px 1fr 130px; gap: 11px; }
