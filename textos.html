@@ -105,11 +105,11 @@
             <div class="train-step-head"><span>PASO 3</span><h3>¿Qué modelo usas?</h3><p>Cada uno transforma y compara los textos de forma distinta.</p></div>
             <div class="train-step-body">
               <fieldset class="model-options"><legend class="sr-only">Clasificador</legend>
-                <label class="model-option"><input type="radio" name="model" value="semantic" checked><strong>MiniLM + logística</strong><small>Embeddings semánticos</small></label>
-                <label class="model-option"><input type="radio" name="model" value="nb"><strong>Naive Bayes</strong><small>TF-IDF · probabilidades</small></label>
+                <label class="model-option"><input type="radio" name="model" value="nb" checked><strong>Naive Bayes</strong><small>TF-IDF · probabilidades</small></label>
                 <label class="model-option"><input type="radio" name="model" value="centroid"><strong>Prototipos por coseno</strong><small>TF-IDF · similitud</small></label>
+                <label class="model-option"><input type="radio" name="model" value="semantic"><strong>MiniLM + logística</strong><small>Embeddings semánticos</small></label>
               </fieldset>
-              <figure class="model-explainer" data-models="semantic">
+              <figure class="model-explainer" data-models="semantic" hidden>
                 <svg viewBox="0 0 600 150" role="img" aria-labelledby="explain-semantic-title"><title id="explain-semantic-title">Texto, encoder MiniLM, vector de 384 números, regresión logística y probabilidad de cada postura</title>
                   <defs><marker id="arrow-semantic" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7a998d"/></marker></defs>
                   <g class="svg-kicker"><text x="46" y="30">TEXTO</text><text x="170" y="30">ENCODER</text><text x="276" y="30">VECTOR · 384</text><text x="385" y="30">CLASIFICADOR</text><text x="510" y="30">PROBABILIDADES</text></g>
@@ -124,7 +124,7 @@
                 </svg>
                 <figcaption><strong>Cómo funciona.</strong> Una red neuronal ya entrenada con millones de frases convierte cada publicación en 384 números que resumen su significado: frases distintas con sentido parecido quedan cerca. Aquí solo se entrena la última pieza, una regresión logística que aprende a separar las tres posturas. <em>Capta sinónimos y paráfrasis, pero es más lento y difícil de interpretar.</em></figcaption>
               </figure>
-              <figure class="model-explainer" data-models="nb" hidden>
+              <figure class="model-explainer" data-models="nb">
                 <svg viewBox="0 0 600 150" role="img" aria-labelledby="explain-nb-title"><title id="explain-nb-title">Probabilidad de cada palabra en cada postura, combinadas para elegir la clase más probable</title>
                   <defs><marker id="arrow-nb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7a998d"/></marker></defs>
                   <g class="svg-kicker"><text x="35" y="16">PALABRAS</text><text x="200" y="16">P(PALABRA | POSTURA)</text><text x="490" y="16">PUNTUACIÓN FINAL</text></g>

@@ -12,18 +12,25 @@ try {
   await page.getByText("Corpus RUW cargado correctamente").waitFor({timeout:45000});
   const samples = await page.locator(".tweet-card").count();
   if (samples !== 5) throw new Error(`Expected 5 examples; got ${samples}`);
-  // The default is an on-device semantic model, not an offline trained artifact.
-  // For fast CI smoke testing, train the existing fully local TF-IDF baseline.
-  if (!(await page.locator('input[name="model"][value="semantic"]').isChecked())) {
-    throw new Error("The on-device semantic model should be the default");
+  // Teaching order: Naive Bayes, cosine prototypes, MiniLM + logistic regression.
+  const modelOrder = await page.locator('input[name="model"]').evaluateAll(inputs =>
+    inputs.map(input => input.value));
+  if (modelOrder.join(",") !== "nb,centroid,semantic") {
+    throw new Error(`Unexpected model order: ${modelOrder.join(",")}`);
   }
+  if (!(await page.locator('input[name="model"][value="nb"]').isChecked())) {
+    throw new Error("Naive Bayes should be selected by default");
+  }
+  if (await page.locator('[data-models="nb"].model-explainer').isHidden() ||
+      !(await page.locator('[data-models="semantic"].model-explainer').isHidden())) {
+    throw new Error("The selected default model must show only its explanation");
+  }
+  // The other options remain selectable and their explanations update.
+  await page.locator('input[name="model"][value="semantic"]').check({force:true});
   if (await page.locator('[data-models="semantic"].model-explainer').isHidden()) {
-    throw new Error("The selected model must show its visual explanation");
+    throw new Error("MiniLM explanation did not appear when selected");
   }
   await page.locator('input[name="model"][value="nb"]').check({force:true});
-  if (await page.locator('[data-models="nb"].model-explainer').isHidden()) {
-    throw new Error("Naive Bayes explanation did not appear");
-  }
   await page.locator("#train-model").click();
   await page.getByText("Modelo entrenado:", {exact:false}).waitFor({timeout:45000});
   const score = (await page.locator("#metric-accuracy").textContent()).trim();
