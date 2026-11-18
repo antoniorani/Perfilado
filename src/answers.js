@@ -1,5 +1,19 @@
 /** Reusable, browser-local student worksheet. No server-side submission. */
-export function setupAnswers({ first, last, step, title, filename, additionalIds = [] }) {
+export function setupAnswers({ first, last, step, title, filename, additionalIds = [], legacyFirst = null }) {
+  // Migrate local drafts in a snapshot before shifting overlapping question IDs.
+  if (Number.isInteger(legacyFirst) && legacyFirst !== first) {
+    try {
+      const marker = `perfilado:step${step}:renumbered-v2`;
+      if (localStorage.getItem(marker) !== "1") {
+        const oldValues = Array.from({ length: last - first + 1 }, (_, i) =>
+          localStorage.getItem(`perfilado:step${step}:q${legacyFirst + i}`));
+        oldValues.forEach((value, i) => {
+          if (value !== null) localStorage.setItem(`perfilado:step${step}:q${first + i}`, value);
+        });
+        localStorage.setItem(marker, "1");
+      }
+    } catch { /* Local storage may be unavailable. */ }
+  }
   const status = document.querySelector("#save-state");
   const exportButton = document.querySelector("#export-answers");
   const ids = [...Array.from({ length: last - first + 1 }, (_, index) => `q${first + index}`), ...additionalIds];

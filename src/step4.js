@@ -40,7 +40,7 @@ document.querySelector("#reset-rates").addEventListener("click", () => {
 });
 
 setupAnswers({
-  first: 20, last: 23, step: 4,
+  first: 22, last: 25, step: 4, legacyFirst: 20,
   title: "PERFILADO — PASO 4: EVALUACIÓN CONJUNTA",
   filename: "perfilado-paso4-respuestas.txt",
 });

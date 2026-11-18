@@ -154,14 +154,20 @@ function showDistribution(summary) {
 }
 
 async function main() {
-  // Preserve drafts from the previously numbered "05 bis" prompt.
+  // Archive the old answer to question 6, whose topic has changed.
   try {
-    const oldAnswer = localStorage.getItem("perfilado:step1:q5b");
-    if (oldAnswer !== null && localStorage.getItem("perfilado:step1:q6") === null) {
-      localStorage.setItem("perfilado:step1:q6", oldAnswer);
+    const revisionKey = "perfilado:step1:questions-v2";
+    if (localStorage.getItem(revisionKey) !== "1") {
+      const previous = localStorage.getItem("perfilado:step1:q6")
+        ?? localStorage.getItem("perfilado:step1:q5b");
+      if (previous !== null) {
+        localStorage.setItem("perfilado:step1:archived-q6", previous);
+        localStorage.removeItem("perfilado:step1:q6");
+      }
+      localStorage.setItem(revisionKey, "1");
     }
   } catch { /* Local storage may be unavailable. */ }
-  setupAnswers({ first: 1, last: 6, step: 1 });
+  setupAnswers({ first: 1, last: 7, step: 1 });
   for (const zone of ZONES) {
     const option = document.createElement("option");
     option.value = zone;

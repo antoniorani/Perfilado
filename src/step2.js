@@ -294,7 +294,7 @@ function showResults() {
 
 async function main() {
   setupAnswers({
-    first: 6, last: 12, step: 2,
+    first: 8, last: 14, step: 2, legacyFirst: 6,
     title: "PERFILADO — PASO 2: IDENTIFICACIÓN BIOMÉTRICA",
     filename: "perfilado-paso2-respuestas.txt",
   });

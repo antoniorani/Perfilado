@@ -384,7 +384,7 @@ async function predictManual() {
 }
 
 async function init() {
-  setupAnswers({first:13,last:19,step:3,title:"PERFILADO — PASO 3: ANÁLISIS DE TEXTOS",
+  setupAnswers({first:15,last:21,step:3,legacyFirst:13,title:"PERFILADO — PASO 3: ANÁLISIS DE TEXTOS",
     filename:"perfilado-paso3-respuestas.txt"});
   for(const field of [controls.exploreTarget,controls.exploreLabel]) {
     field.addEventListener("change",updateExploreFilter);
