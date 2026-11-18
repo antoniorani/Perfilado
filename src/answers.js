@@ -1,19 +1,29 @@
 /** Reusable, browser-local student worksheet. No server-side submission. */
-export function setupAnswers({ first, last, step, title, filename, additionalIds = [], legacyFirst = null }) {
-  // Migrate local drafts in a snapshot before shifting overlapping question IDs.
-  if (Number.isInteger(legacyFirst) && legacyFirst !== first) {
+/** Apply each historical numbering change exactly once, preserving browser-local drafts. */
+function migrateAnswers(step, migrations) {
+  const prefix = `perfilado:step${step}:`;
+  for (const { version, from, to, count, archive = [], clear = [] } of migrations) {
     try {
-      const marker = `perfilado:step${step}:renumbered-v2`;
-      if (localStorage.getItem(marker) !== "1") {
-        const oldValues = Array.from({ length: last - first + 1 }, (_, i) =>
-          localStorage.getItem(`perfilado:step${step}:q${legacyFirst + i}`));
-        oldValues.forEach((value, i) => {
-          if (value !== null) localStorage.setItem(`perfilado:step${step}:q${first + i}`, value);
-        });
-        localStorage.setItem(marker, "1");
+      const marker = `${prefix}renumbered-${version}`;
+      if (localStorage.getItem(marker) === "1") continue;
+      // Snapshot first: source and destination question ranges may overlap.
+      const previous = Array.from({ length: count }, (_, i) =>
+        localStorage.getItem(`${prefix}q${from + i}`));
+      previous.forEach((value, i) => {
+        if (value !== null) localStorage.setItem(`${prefix}q${to + i}`, value);
+      });
+      for (const { source, destination } of archive) {
+        const value = localStorage.getItem(`${prefix}${source}`);
+        if (value !== null) localStorage.setItem(`${prefix}${destination}`, value);
       }
+      for (const id of clear) localStorage.removeItem(`${prefix}${id}`);
+      localStorage.setItem(marker, "1");
     } catch { /* Local storage may be unavailable. */ }
   }
+}
+
+export function setupAnswers({ first, last, step, title, filename, additionalIds = [], migrations = [] }) {
+  migrateAnswers(step, migrations);
   const status = document.querySelector("#save-state");
   const exportButton = document.querySelector("#export-answers");
   const ids = [...Array.from({ length: last - first + 1 }, (_, index) => `q${first + index}`), ...additionalIds];

@@ -294,7 +294,15 @@ function showResults() {
 
 async function main() {
   setupAnswers({
-    first: 8, last: 14, step: 2, legacyFirst: 6,
+    first: 8, last: 17, step: 2,
+    migrations: [
+      { version: "v2", from: 6, to: 8, count: 7 },
+      {
+        version: "v3", from: 14, to: 16, count: 1,
+        archive: [{ source: "q14", destination: "archived-q14" }],
+        clear: ["q14"],
+      },
+    ],
     title: "PERFILADO — PASO 2: IDENTIFICACIÓN BIOMÉTRICA",
     filename: "perfilado-paso2-respuestas.txt",
   });
