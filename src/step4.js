@@ -40,10 +40,11 @@ document.querySelector("#reset-rates").addEventListener("click", () => {
 });
 
 setupAnswers({
-  first: 25, last: 28, step: 4,
+  first: 27, last: 30, step: 4,
   migrations: [
     { version: "v2", from: 20, to: 22, count: 4 },
     { version: "v3", from: 22, to: 25, count: 4 },
+    { version: "v4", from: 25, to: 27, count: 4 },
   ],
   title: "PERFILADO — PASO 4: EVALUACIÓN CONJUNTA",
   filename: "perfilado-paso4-respuestas.txt",

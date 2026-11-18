@@ -384,7 +384,7 @@ async function predictManual() {
 }
 
 async function init() {
-  setupAnswers({first:18,last:24,step:3,migrations:[
+  setupAnswers({first:18,last:26,step:3,migrations:[
     {version:"v2",from:13,to:15,count:7},
     {version:"v3",from:15,to:18,count:7},
   ],title:"PERFILADO — PASO 3: ANÁLISIS DE TEXTOS",

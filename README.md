@@ -48,7 +48,7 @@ data/lfw-identities.json   Índice real LFW
 tests/core.test.js         Pruebas del catálogo
 tests/full-gallery.test.js   Pruebas de búsqueda y umbrales
 textos.html                Paso 3: clasificación de publicaciones
-evaluacion.html            Paso 4: evaluación conjunta e informe final (preguntas 25–28)
+evaluacion.html            Paso 4: evaluación conjunta e informe final (preguntas 27–30)
 assets/evaluacion.css      Estilos de la fase final
 src/combined-risk.js       Producto hipotético de aciertos y límites sin independencia
 src/step4.js               Simulación local y respuestas reutilizando src/answers.js
