@@ -9,7 +9,7 @@ Laboratorio docente de inteligencia artificial, identificación facial y protecc
 - **Paso 2:** 5.749 referencias calculadas con detección y alineación facial, y 100 fotos nuevas procesadas en el navegador para buscar top-1/top-5 y ajustar el umbral.
 - **Paso 3:** clasificación real de RUW con dos objetivos (Rusia/Ucrania), tres clasificadores entrenados **en el navegador**, incluido MiniLM como extractor de embeddings semánticos y una cabeza logística supervisada, con validación, prueba y matriz de confusión.
 - **Paso 4:** evaluación conjunta de los errores de los pasos 2 y 3, inferencias sobre opiniones políticas, escenarios jurídicos civil/policial/militar y valoración final. Todos los casos son ficticios.
-- **Caso real (epílogo):** página sobre Clearview AI y su utilización documentada en Ucrania, con fuentes de Reuters, The Washington Post y TIME. Se accede únicamente desde el enlace inferior derecho del paso 4; no forma parte de la navegación principal.
+- **Caso real (epílogo):** página crítica sobre Clearview AI: cómo funciona (con un diagrama de sus cuatro fases), su uso documentado en Ucrania por Reuters, The Washington Post y TIME, y las autoridades que la han declarado ilegal o la han sancionado, con una fuente por decisión. Se accede desde el enlace inferior derecho del paso 4; muestra la barra de pasos para volver a cualquiera de ellos, pero no aparece en la navegación de los demás pasos.
 
 ## Datos
 
@@ -50,7 +50,7 @@ tests/core.test.js         Pruebas del catálogo
 tests/full-gallery.test.js   Pruebas de búsqueda y umbrales
 textos.html                Paso 3: clasificación de publicaciones
 evaluacion.html            Paso 4: evaluación conjunta e informe final (preguntas 27–30)
-clearview.html              Epílogo: caso real de Clearview AI en Ucrania
+clearview.html              Epílogo: Clearview AI (funcionamiento, Ucrania y sanciones)
 assets/clearview.css        Estilos específicos de la página final
 assets/evaluacion.css      Estilos de la fase final
 src/combined-risk.js       Producto hipotético de aciertos y límites sin independencia
